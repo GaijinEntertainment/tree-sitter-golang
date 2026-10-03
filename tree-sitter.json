@@ -1,0 +1,43 @@
+{
+  "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/config.schema.json",
+  "grammars": [
+    {
+      "name": "golang",
+      "camelcase": "Golang",
+      "title": "Go",
+      "scope": "source.go",
+      "path": ".",
+      "file-types": [
+        "go"
+      ],
+      "injection-regex": "^(go|golang)$"
+    }
+  ],
+  "metadata": {
+    "version": "0.1.0",
+    "license": "MIT",
+    "description": "Go grammar for tree-sitter",
+    "authors": [
+      {
+        "name": "Gaijin Entertainment"
+      },
+      {
+        "name": "Anton Zinovyev",
+        "email": "xog3@yandex.ru"
+      }
+    ],
+    "links": {
+      "repository": "https://github.com/GaijinEntertainment/tree-sitter-golang"
+    }
+  },
+  "bindings": {
+    "c": true,
+    "go": true,
+    "java": false,
+    "node": true,
+    "python": true,
+    "rust": true,
+    "swift": true,
+    "zig": false
+  }
+}

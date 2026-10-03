@@ -1,0 +1,473 @@
+================================================================================
+Simple statements
+================================================================================
+
+package p
+
+func f() {
+	x := 1
+	x += 2
+	x++
+	ch <- x
+	a, b = b, a
+	g()
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameter_list)
+    body: (block
+      (short_var_declaration
+        left: (expression_list
+          (identifier))
+        right: (expression_list
+          (int_literal)))
+      (assignment_statement
+        left: (expression_list
+          (identifier))
+        right: (expression_list
+          (int_literal)))
+      (inc_dec_statement
+        operand: (identifier))
+      (send_statement
+        channel: (identifier)
+        value: (identifier))
+      (assignment_statement
+        left: (expression_list
+          (identifier)
+          (identifier))
+        right: (expression_list
+          (identifier)
+          (identifier)))
+      (expression_statement
+        (call_expression
+          function: (identifier)
+          arguments: (argument_list))))))
+
+================================================================================
+If statements with initializers and else chains
+================================================================================
+
+package p
+
+func f() {
+	if x := g(); x > 0 {
+	} else if x < 0 {
+	} else {
+	}
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameter_list)
+    body: (block
+      (if_statement
+        initializer: (short_var_declaration
+          left: (expression_list
+            (identifier))
+          right: (expression_list
+            (call_expression
+              function: (identifier)
+              arguments: (argument_list))))
+        condition: (binary_expression
+          left: (identifier)
+          right: (int_literal))
+        consequence: (block)
+        alternative: (if_statement
+          condition: (binary_expression
+            left: (identifier)
+            right: (int_literal))
+          consequence: (block)
+          alternative: (block))))))
+
+================================================================================
+Expression switch statements
+================================================================================
+
+package p
+
+func f() {
+	switch x := g(); x {
+	case 1, 2:
+		fallthrough
+	case 3:
+	default:
+	}
+	switch {
+	case x > 0:
+	}
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameter_list)
+    body: (block
+      (expression_switch_statement
+        initializer: (short_var_declaration
+          left: (expression_list
+            (identifier))
+          right: (expression_list
+            (call_expression
+              function: (identifier)
+              arguments: (argument_list))))
+        value: (identifier)
+        (expression_case
+          value: (expression_list
+            (int_literal)
+            (int_literal))
+          (fallthrough_statement))
+        (expression_case
+          value: (expression_list
+            (int_literal)))
+        (default_case))
+      (expression_switch_statement
+        (expression_case
+          value: (expression_list
+            (binary_expression
+              left: (identifier)
+              right: (int_literal))))))))
+
+================================================================================
+Type switch statements
+================================================================================
+
+package p
+
+func f() {
+	switch v := x.(type) {
+	case int, string:
+	case nil:
+	case *T, []byte:
+	default:
+		_ = v
+	}
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameter_list)
+    body: (block
+      (type_switch_statement
+        alias: (identifier)
+        value: (identifier)
+        (type_case
+          type: (type_identifier)
+          type: (type_identifier))
+        (type_case
+          type: (type_identifier))
+        (type_case
+          type: (pointer_type
+            (type_identifier))
+          type: (slice_type
+            element: (type_identifier)))
+        (default_case
+          (assignment_statement
+            left: (expression_list
+              (identifier))
+            right: (expression_list
+              (identifier))))))))
+
+================================================================================
+Select statements
+================================================================================
+
+package p
+
+func f() {
+	select {
+	case v := <-in:
+		_ = v
+	case out <- 1:
+	case <-done:
+	default:
+	}
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameter_list)
+    body: (block
+      (select_statement
+        (communication_case
+          communication: (receive_statement
+            left: (expression_list
+              (identifier))
+            right: (unary_expression
+              operand: (identifier)))
+          (assignment_statement
+            left: (expression_list
+              (identifier))
+            right: (expression_list
+              (identifier))))
+        (communication_case
+          communication: (send_statement
+            channel: (identifier)
+            value: (int_literal)))
+        (communication_case
+          communication: (receive_statement
+            right: (unary_expression
+              operand: (identifier))))
+        (default_case)))))
+
+================================================================================
+For statements
+================================================================================
+
+package p
+
+func f() {
+	for {
+	}
+	for x < 10 {
+	}
+	for i := 0; i < n; i++ {
+	}
+	for k, v := range m {
+	}
+	for range 10 {
+	}
+	for i := range seq {
+	}
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameter_list)
+    body: (block
+      (for_statement
+        body: (block))
+      (for_statement
+        condition: (binary_expression
+          left: (identifier)
+          right: (int_literal))
+        body: (block))
+      (for_statement
+        (for_clause
+          initializer: (short_var_declaration
+            left: (expression_list
+              (identifier))
+            right: (expression_list
+              (int_literal)))
+          condition: (binary_expression
+            left: (identifier)
+            right: (identifier))
+          update: (inc_dec_statement
+            operand: (identifier)))
+        body: (block))
+      (for_statement
+        (range_clause
+          left: (expression_list
+            (identifier)
+            (identifier))
+          right: (identifier))
+        body: (block))
+      (for_statement
+        (range_clause
+          right: (int_literal))
+        body: (block))
+      (for_statement
+        (range_clause
+          left: (expression_list
+            (identifier))
+          right: (identifier))
+        body: (block)))))
+
+================================================================================
+Labels, jumps, go and defer
+================================================================================
+
+package p
+
+func f() {
+outer:
+	for {
+		for {
+			continue outer
+		}
+		break outer
+	}
+	goto end
+end:
+	go g()
+	defer h()
+	return
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameter_list)
+    body: (block
+      (labeled_statement
+        label: (label_name)
+        statement: (for_statement
+          body: (block
+            (for_statement
+              body: (block
+                (continue_statement
+                  label: (label_name))))
+            (break_statement
+              label: (label_name)))))
+      (goto_statement
+        label: (label_name))
+      (labeled_statement
+        label: (label_name)
+        statement: (go_statement
+          call: (call_expression
+            function: (identifier)
+            arguments: (argument_list))))
+      (defer_statement
+        call: (call_expression
+          function: (identifier)
+          arguments: (argument_list)))
+      (return_statement))))
+
+================================================================================
+Labels without a statement
+================================================================================
+
+package p
+
+func f() {
+	switch {
+	case true:
+	L:
+		;
+	}
+	{
+	M:
+	}
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameter_list)
+    body: (block
+      (expression_switch_statement
+        (expression_case
+          value: (expression_list
+            (identifier))
+          (labeled_statement
+            label: (label_name)
+            statement: (empty_statement))))
+      (block
+        (labeled_statement
+          label: (label_name))))))
+
+================================================================================
+Declarations and blocks inside functions
+================================================================================
+
+package p
+
+func f() (int, error) {
+	const c = 1
+	var v int
+	type t struct{}
+	{
+		v++
+	}
+	return v, nil
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameter_list)
+    result: (parameter_list
+      (parameter_declaration
+        type: (type_identifier))
+      (parameter_declaration
+        type: (type_identifier)))
+    body: (block
+      (const_declaration
+        (const_spec
+          name: (identifier)
+          value: (expression_list
+            (int_literal))))
+      (var_declaration
+        (var_spec
+          name: (identifier)
+          type: (type_identifier)))
+      (type_declaration
+        (type_spec
+          name: (type_identifier)
+          type: (struct_type)))
+      (block
+        (inc_dec_statement
+          operand: (identifier)))
+      (return_statement
+        result: (expression_list
+          (identifier)
+          (identifier))))))
+
+================================================================================
+A type assertion to type outside a type switch
+================================================================================
+
+package p
+
+func f(i any) {
+	switch (i.(type)) {
+	}
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameter_list
+      (parameter_declaration
+        name: (identifier)
+        type: (type_identifier)))
+    body: (block
+      (expression_switch_statement
+        value: (parenthesized_expression
+          (type_assertion_expression
+            operand: (identifier)))))))

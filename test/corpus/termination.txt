@@ -1,0 +1,328 @@
+================================================================================
+Line ends end statements
+================================================================================
+
+package p
+
+func f() {
+	x := 1
+	y := 2; z := 3
+	return
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameter_list)
+    body: (block
+      (short_var_declaration
+        left: (expression_list
+          (identifier))
+        right: (expression_list
+          (int_literal)))
+      (short_var_declaration
+        left: (expression_list
+          (identifier))
+        right: (expression_list
+          (int_literal)))
+      (short_var_declaration
+        left: (expression_list
+          (identifier))
+        right: (expression_list
+          (int_literal)))
+      (return_statement))))
+
+================================================================================
+Statements on one line before a closing brace
+================================================================================
+
+package p
+
+func f() { if x { return }; g() }
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameter_list)
+    body: (block
+      (if_statement
+        condition: (identifier)
+        consequence: (block
+          (return_statement)))
+      (expression_statement
+        (call_expression
+          function: (identifier)
+          arguments: (argument_list))))))
+
+================================================================================
+Expressions continue after an operator at a line end
+================================================================================
+
+package p
+
+var x = a +
+	b +
+	c
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (binary_expression
+          left: (binary_expression
+            left: (identifier)
+            right: (identifier))
+          right: (identifier))))))
+
+================================================================================
+A general comment with a newline ends a statement
+================================================================================
+
+package p
+
+func f() {
+	x := 1 /*
+	*/ y := 2
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameter_list)
+    body: (block
+      (short_var_declaration
+        left: (expression_list
+          (identifier))
+        right: (expression_list
+          (int_literal)))
+      (comment)
+      (short_var_declaration
+        left: (expression_list
+          (identifier))
+        right: (expression_list
+          (int_literal))))))
+
+================================================================================
+Multi-line lists end with a comma
+================================================================================
+
+package p
+
+var x = f(
+	a,
+	b,
+)
+var y = []int{
+	1,
+	2,
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (call_expression
+          function: (identifier)
+          arguments: (argument_list
+            (identifier)
+            (identifier))))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (composite_literal
+          type: (slice_type
+            element: (type_identifier))
+          body: (literal_value
+            (int_literal)
+            (int_literal)))))))
+
+================================================================================
+A composite literal of a named type in a header needs parentheses
+================================================================================
+
+package p
+
+func f() {
+	if x == (T{}) {
+	}
+	for _, v := range []T{{1}} {
+	}
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameter_list)
+    body: (block
+      (if_statement
+        condition: (binary_expression
+          left: (identifier)
+          right: (parenthesized_expression
+            (composite_literal
+              type: (type_identifier)
+              body: (literal_value))))
+        consequence: (block))
+      (for_statement
+        (range_clause
+          left: (expression_list
+            (identifier)
+            (identifier))
+          right: (composite_literal
+            type: (slice_type
+              element: (type_identifier))
+            body: (literal_value
+              (literal_value
+                (int_literal)))))
+        body: (block)))))
+
+================================================================================
+A brace on the next line after a call opens a block
+================================================================================
+
+package p
+
+func f() {
+	s := <-app.signal
+	{
+		g(s)
+	}
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameter_list)
+    body: (block
+      (short_var_declaration
+        left: (expression_list
+          (identifier))
+        right: (expression_list
+          (unary_expression
+            operand: (selector_expression
+              operand: (identifier)
+              field: (field_identifier)))))
+      (block
+        (expression_statement
+          (call_expression
+            function: (identifier)
+            arguments: (argument_list
+              (identifier))))))))
+
+================================================================================
+Embedded generic fields on consecutive lines
+================================================================================
+
+package p
+
+type S struct {
+	A[int]
+	B[int]
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (type_declaration
+    (type_spec
+      name: (type_identifier)
+      type: (struct_type
+        (field_declaration
+          type: (generic_type
+            type: (type_identifier)
+            type_arguments: (type_arguments
+              (type_identifier))))
+        (field_declaration
+          type: (generic_type
+            type: (type_identifier)
+            type_arguments: (type_arguments
+              (type_identifier))))))))
+
+================================================================================
+A switch tag at a line end becomes the initializer
+================================================================================
+
+package p
+
+func f() {
+	switch x
+	{
+	}
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameter_list)
+    body: (block
+      (expression_switch_statement
+        initializer: (expression_statement
+          (identifier))))))
+
+================================================================================
+Keywords that do not end a line
+================================================================================
+
+package p
+
+func f() {
+	go
+	g()
+L:
+	goto
+	L
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameter_list)
+    body: (block
+      (go_statement
+        call: (call_expression
+          function: (identifier)
+          arguments: (argument_list)))
+      (labeled_statement
+        label: (label_name)
+        statement: (goto_statement
+          label: (label_name))))))

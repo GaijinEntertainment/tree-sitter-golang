@@ -1,0 +1,185 @@
+================================================================================
+Pointer, array, slice and map types
+================================================================================
+
+package p
+
+var a *int
+var b [4]string
+var c []map[string][]int
+var d [2][3]float64
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      type: (pointer_type
+        (type_identifier))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      type: (array_type
+        length: (int_literal)
+        element: (type_identifier))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      type: (slice_type
+        element: (map_type
+          key: (type_identifier)
+          value: (slice_type
+            element: (type_identifier))))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      type: (array_type
+        length: (int_literal)
+        element: (array_type
+          length: (int_literal)
+          element: (type_identifier))))))
+
+================================================================================
+Channel types associate the arrow with the leftmost chan
+================================================================================
+
+package p
+
+var a chan int
+var b chan<- int
+var c <-chan int
+var d chan<- chan int
+var e chan (<-chan int)
+var f <-chan <-chan int
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      type: (channel_type
+        value: (type_identifier))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      type: (channel_type
+        value: (type_identifier))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      type: (channel_type
+        value: (type_identifier))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      type: (channel_type
+        value: (channel_type
+          value: (type_identifier)))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      type: (channel_type
+        value: (parenthesized_type
+          (channel_type
+            value: (type_identifier))))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      type: (channel_type
+        value: (channel_type
+          value: (type_identifier))))))
+
+================================================================================
+Function types
+================================================================================
+
+package p
+
+var f func()
+var g func(int, ...string) (bool, error)
+var h func() func() int
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      type: (function_type
+        parameters: (parameter_list))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      type: (function_type
+        parameters: (parameter_list
+          (parameter_declaration
+            type: (type_identifier))
+          (variadic_parameter_declaration
+            type: (type_identifier)))
+        result: (parameter_list
+          (parameter_declaration
+            type: (type_identifier))
+          (parameter_declaration
+            type: (type_identifier))))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      type: (function_type
+        parameters: (parameter_list)
+        result: (function_type
+          parameters: (parameter_list)
+          result: (type_identifier))))))
+
+================================================================================
+Qualified, generic and parenthesized types
+================================================================================
+
+package p
+
+var a pkg.Type
+var b List[int]
+var c pkg.Map[string, []int]
+var d (int)
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      type: (qualified_type
+        package: (package_identifier)
+        name: (type_identifier))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      type: (generic_type
+        type: (type_identifier)
+        type_arguments: (type_arguments
+          (type_identifier)))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      type: (generic_type
+        type: (qualified_type
+          package: (package_identifier)
+          name: (type_identifier))
+        type_arguments: (type_arguments
+          (type_identifier)
+          (slice_type
+            element: (type_identifier))))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      type: (parenthesized_type
+        (type_identifier)))))

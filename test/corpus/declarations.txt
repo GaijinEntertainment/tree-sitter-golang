@@ -1,0 +1,506 @@
+================================================================================
+Package clause and imports
+================================================================================
+
+package main
+
+import "fmt"
+import (
+	"os"
+	str "strings"
+	. "math"
+	_ "embed"
+)
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (import_declaration
+    (import_spec
+      path: (interpreted_string_literal)))
+  (import_declaration
+    (import_spec
+      path: (interpreted_string_literal))
+    (import_spec
+      name: (package_identifier)
+      path: (interpreted_string_literal))
+    (import_spec
+      path: (interpreted_string_literal))
+    (import_spec
+      name: (package_identifier)
+      path: (interpreted_string_literal))))
+
+================================================================================
+Constant declarations with iota and implicit repetition
+================================================================================
+
+package p
+
+const Pi = 3.14
+const (
+	A = iota
+	B
+	C int = 5
+	D, E = 1, 2
+)
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (const_declaration
+    (const_spec
+      name: (identifier)
+      value: (expression_list
+        (float_literal))))
+  (const_declaration
+    (const_spec
+      name: (identifier)
+      value: (expression_list
+        (identifier)))
+    (const_spec
+      name: (identifier))
+    (const_spec
+      name: (identifier)
+      type: (type_identifier)
+      value: (expression_list
+        (int_literal)))
+    (const_spec
+      name: (identifier)
+      name: (identifier)
+      value: (expression_list
+        (int_literal)
+        (int_literal)))))
+
+================================================================================
+Variable declarations
+================================================================================
+
+package p
+
+var x int
+var y, z = 1, "two"
+var (
+	a []byte
+	b map[string]int = nil
+)
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      type: (type_identifier)))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      name: (identifier)
+      value: (expression_list
+        (int_literal)
+        (interpreted_string_literal))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      type: (slice_type
+        element: (type_identifier)))
+    (var_spec
+      name: (identifier)
+      type: (map_type
+        key: (type_identifier)
+        value: (type_identifier))
+      value: (expression_list
+        (identifier)))))
+
+================================================================================
+Type definitions and aliases
+================================================================================
+
+package p
+
+type ID int
+type Name = string
+type (
+	Point struct{ X, Y int }
+	Handler func(int) error
+)
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (type_declaration
+    (type_spec
+      name: (type_identifier)
+      type: (type_identifier)))
+  (type_declaration
+    (type_alias
+      name: (type_identifier)
+      type: (type_identifier)))
+  (type_declaration
+    (type_spec
+      name: (type_identifier)
+      type: (struct_type
+        (field_declaration
+          name: (field_identifier)
+          name: (field_identifier)
+          type: (type_identifier))))
+    (type_spec
+      name: (type_identifier)
+      type: (function_type
+        parameters: (parameter_list
+          (parameter_declaration
+            type: (type_identifier)))
+        result: (type_identifier)))))
+
+================================================================================
+Generic types and generic aliases
+================================================================================
+
+package p
+
+type List[T any] struct {
+	next *List[T]
+	val  T
+}
+
+type Pair[K comparable, V any] struct{ k K; v V }
+
+type Set[T comparable] = map[T]struct{}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (type_declaration
+    (type_spec
+      name: (type_identifier)
+      type_parameters: (type_parameter_list
+        (type_parameter_declaration
+          name: (type_identifier)
+          constraint: (type_elem
+            (type_identifier))))
+      type: (struct_type
+        (field_declaration
+          name: (field_identifier)
+          type: (pointer_type
+            (generic_type
+              type: (type_identifier)
+              type_arguments: (type_arguments
+                (type_identifier)))))
+        (field_declaration
+          name: (field_identifier)
+          type: (type_identifier)))))
+  (type_declaration
+    (type_spec
+      name: (type_identifier)
+      type_parameters: (type_parameter_list
+        (type_parameter_declaration
+          name: (type_identifier)
+          constraint: (type_elem
+            (type_identifier)))
+        (type_parameter_declaration
+          name: (type_identifier)
+          constraint: (type_elem
+            (type_identifier))))
+      type: (struct_type
+        (field_declaration
+          name: (field_identifier)
+          type: (type_identifier))
+        (field_declaration
+          name: (field_identifier)
+          type: (type_identifier)))))
+  (type_declaration
+    (type_alias
+      name: (type_identifier)
+      type_parameters: (type_parameter_list
+        (type_parameter_declaration
+          name: (type_identifier)
+          constraint: (type_elem
+            (type_identifier))))
+      type: (map_type
+        key: (type_identifier)
+        value: (struct_type)))))
+
+================================================================================
+Function declarations
+================================================================================
+
+package p
+
+func f() {}
+func g(a, b int, s ...string) (n int, err error) { return }
+func h(int, string) bool
+func Map[T, U any](xs []T, f func(T) U) []U { return nil }
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameter_list)
+    body: (block))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameter_list
+      (parameter_declaration
+        name: (identifier)
+        name: (identifier)
+        type: (type_identifier))
+      (variadic_parameter_declaration
+        name: (identifier)
+        type: (type_identifier)))
+    result: (parameter_list
+      (parameter_declaration
+        name: (identifier)
+        type: (type_identifier))
+      (parameter_declaration
+        name: (identifier)
+        type: (type_identifier)))
+    body: (block
+      (return_statement)))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameter_list
+      (parameter_declaration
+        type: (type_identifier))
+      (parameter_declaration
+        type: (type_identifier)))
+    result: (type_identifier))
+  (function_declaration
+    name: (identifier)
+    type_parameters: (type_parameter_list
+      (type_parameter_declaration
+        name: (type_identifier)
+        name: (type_identifier)
+        constraint: (type_elem
+          (type_identifier))))
+    parameters: (parameter_list
+      (parameter_declaration
+        name: (identifier)
+        type: (slice_type
+          element: (type_identifier)))
+      (parameter_declaration
+        name: (identifier)
+        type: (function_type
+          parameters: (parameter_list
+            (parameter_declaration
+              type: (type_identifier)))
+          result: (type_identifier))))
+    result: (slice_type
+      element: (type_identifier))
+    body: (block
+      (return_statement
+        result: (expression_list
+          (identifier))))))
+
+================================================================================
+Method declarations
+================================================================================
+
+package p
+
+func (p *Point) Move(dx int) {}
+func (List[T]) Len() int { return 0 }
+func (r *Rand) N[Int intType](n Int) Int { return n }
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (method_declaration
+    receiver: (parameter_list
+      (parameter_declaration
+        name: (identifier)
+        type: (pointer_type
+          (type_identifier))))
+    name: (field_identifier)
+    parameters: (parameter_list
+      (parameter_declaration
+        name: (identifier)
+        type: (type_identifier)))
+    body: (block))
+  (method_declaration
+    receiver: (parameter_list
+      (parameter_declaration
+        type: (generic_type
+          type: (type_identifier)
+          type_arguments: (type_arguments
+            (type_identifier)))))
+    name: (field_identifier)
+    parameters: (parameter_list)
+    result: (type_identifier)
+    body: (block
+      (return_statement
+        result: (expression_list
+          (int_literal)))))
+  (method_declaration
+    receiver: (parameter_list
+      (parameter_declaration
+        name: (identifier)
+        type: (pointer_type
+          (type_identifier))))
+    name: (field_identifier)
+    type_parameters: (type_parameter_list
+      (type_parameter_declaration
+        name: (type_identifier)
+        constraint: (type_elem
+          (type_identifier))))
+    parameters: (parameter_list
+      (parameter_declaration
+        name: (identifier)
+        type: (type_identifier)))
+    result: (type_identifier)
+    body: (block
+      (return_statement
+        result: (expression_list
+          (identifier))))))
+
+================================================================================
+Struct types with embedded fields and tags
+================================================================================
+
+package p
+
+type S struct {
+	a, b int
+	io.Reader
+	*Base
+	List[int]
+	buf [64]byte
+	Name string `json:"name"`
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (type_declaration
+    (type_spec
+      name: (type_identifier)
+      type: (struct_type
+        (field_declaration
+          name: (field_identifier)
+          name: (field_identifier)
+          type: (type_identifier))
+        (field_declaration
+          type: (qualified_type
+            package: (package_identifier)
+            name: (type_identifier)))
+        (field_declaration
+          type: (pointer_type
+            (type_identifier)))
+        (field_declaration
+          type: (generic_type
+            type: (type_identifier)
+            type_arguments: (type_arguments
+              (type_identifier))))
+        (field_declaration
+          name: (field_identifier)
+          type: (array_type
+            length: (int_literal)
+            element: (type_identifier)))
+        (field_declaration
+          name: (field_identifier)
+          type: (type_identifier)
+          tag: (raw_string_literal))))))
+
+================================================================================
+Interface types with type elements
+================================================================================
+
+package p
+
+type I interface {
+	io.Writer
+	Close() error
+	~int | ~string
+	comparable
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (type_declaration
+    (type_spec
+      name: (type_identifier)
+      type: (interface_type
+        (type_elem
+          (qualified_type
+            package: (package_identifier)
+            name: (type_identifier)))
+        (method_elem
+          name: (field_identifier)
+          parameters: (parameter_list)
+          result: (type_identifier))
+        (type_elem
+          (underlying_type
+            (type_identifier))
+          (underlying_type
+            (type_identifier)))
+        (type_elem
+          (type_identifier))))))
+
+================================================================================
+Type parameter lists against array lengths
+================================================================================
+
+package p
+
+type A [N]int
+type B[P *C,] struct{}
+type C[P *struct{}] struct{}
+type D [P * C]int
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (type_declaration
+    (type_spec
+      name: (type_identifier)
+      type: (array_type
+        length: (identifier)
+        element: (type_identifier))))
+  (type_declaration
+    (type_spec
+      name: (type_identifier)
+      type_parameters: (type_parameter_list
+        (type_parameter_declaration
+          name: (type_identifier)
+          constraint: (type_elem
+            (pointer_type
+              (type_identifier)))))
+      type: (struct_type)))
+  (type_declaration
+    (type_spec
+      name: (type_identifier)
+      type_parameters: (type_parameter_list
+        (type_parameter_declaration
+          name: (type_identifier)
+          constraint: (type_elem
+            (pointer_type
+              (struct_type)))))
+      type: (struct_type)))
+  (type_declaration
+    (type_spec
+      name: (type_identifier)
+      type: (array_type
+        length: (binary_expression
+          left: (identifier)
+          right: (identifier))
+        element: (type_identifier)))))

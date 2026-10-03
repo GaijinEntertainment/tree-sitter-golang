@@ -1,0 +1,230 @@
+================================================================================
+Integer literals
+================================================================================
+
+package p
+
+var a = 42
+var b = 4_2
+var c = 0600
+var d = 0o600
+var e = 0b1010
+var f = 0xBad_Face
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (int_literal))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (int_literal))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (int_literal))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (int_literal))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (int_literal))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (int_literal)))))
+
+================================================================================
+Floating-point literals
+================================================================================
+
+package p
+
+var a = 0.
+var b = 72.40
+var c = 1.e+0
+var d = .25
+var e = 1_5.
+var f = 0x1p-2
+var g = 0X.8p-0
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (float_literal))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (float_literal))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (float_literal))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (float_literal))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (float_literal))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (float_literal))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (float_literal)))))
+
+================================================================================
+Imaginary literals
+================================================================================
+
+package p
+
+var a = 0i
+var b = 0123i
+var c = 0x1p-2i
+var d = 1.e+0i
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (imaginary_literal))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (imaginary_literal))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (imaginary_literal))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (imaginary_literal)))))
+
+================================================================================
+Rune literals
+================================================================================
+
+package p
+
+var a = 'a'
+var b = '\n'
+var c = '\x07'
+var d = 'ዤ'
+var e = '\U00101234'
+var f = '\''
+var g = '\377'
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (rune_literal))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (rune_literal))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (rune_literal))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (rune_literal))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (rune_literal))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (rune_literal))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (rune_literal)))))
+
+================================================================================
+String literals
+================================================================================
+
+package p
+
+var a = "hello\n"
+var b = "日\U00008a9e\xff"
+var c = `raw
+string \n`
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (interpreted_string_literal
+          (escape_sequence)))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (interpreted_string_literal
+          (escape_sequence)
+          (escape_sequence)))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (raw_string_literal)))))
