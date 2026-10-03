@@ -10,6 +10,7 @@
       "file-types": [
         "go"
       ],
+      "highlights": "queries/highlights.scm",
       "injection-regex": "^(go|golang)$"
     }
   ],
