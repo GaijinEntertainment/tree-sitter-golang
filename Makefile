@@ -1,6 +1,6 @@
 LANGUAGE_NAME := tree-sitter-golang
 HOMEPAGE_URL := https://github.com/GaijinEntertainment/tree-sitter-golang
-VERSION := 0.1.0
+VERSION := 1.27.0
 DESCRIPTION := Go grammar for tree-sitter
 
 # repository

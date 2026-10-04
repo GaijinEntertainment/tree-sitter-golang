@@ -119038,8 +119038,8 @@ TS_PUBLIC const TSLanguage *tree_sitter_golang(void) {
     .reserved_words = &ts_reserved_words[0][0],
     .max_reserved_word_set_size = 25,
     .metadata = {
-      .major_version = 0,
-      .minor_version = 1,
+      .major_version = 1,
+      .minor_version = 27,
       .patch_version = 0,
     },
   };

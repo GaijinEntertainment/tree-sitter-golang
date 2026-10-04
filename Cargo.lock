@@ -189,7 +189,7 @@ dependencies = [
 
 [[package]]
 name = "tree-sitter-golang"
-version = "0.1.0"
+version = "1.27.0"
 dependencies = [
  "cc",
  "tree-sitter",
