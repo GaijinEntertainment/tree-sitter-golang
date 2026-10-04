@@ -37,8 +37,8 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
   `tree-sitter.json`, and set the version with `tree-sitter version <version>`.
 - `package-lock.json`, `Cargo.lock`, `go.sum`, `Package.resolved` - lockfiles that npm, cargo, go, and swift write when
   they resolve the dependencies of the manifests. Commit them with the manifest change.
-- `.github/` - the CI, lint, fuzz, and publish workflows, dependabot, and issue templates. The publish workflow needs
-  the `NPM_TOKEN`, `CARGO_REGISTRY_TOKEN`, and `PYPI_API_TOKEN` secrets.
+- `.github/` - the CI, lint, fuzz, and publish workflows, dependabot, and issue templates. The publish workflow
+  authenticates to crates.io and PyPI with trusted publishing and holds no registry token.
 - `eslint.config.mjs` - the lint configuration for `grammar.js` (`npm run lint`).
 - `examples/` - Go files that the CI workflow parses. `//go:build ignore` keeps them out of Go builds.
 - `test/corpus/` - corpus tests, one file per topic. `:error` marks an input that must produce ERROR.
@@ -80,6 +80,26 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
   the character that the pattern sees.
 - In `queries/tags.scm`, tree-sitter-tags keeps one tag per name node, from the earliest pattern that matches it. Put
   a specific pattern, such as an interface type, before the general pattern for the same node.
+
+## Releasing
+
+- The version is `X.Y.P`. `X.Y` is the Go language version that the grammar covers, and `P` counts the releases for
+  that language version. Go stays at major version 1, so no version can mark a breaking change: a release adds node
+  kinds and fields, and never renames or removes one.
+- To release, set the version with `tree-sitter version X.Y.P`, then run `tree-sitter generate`: `src/parser.c` holds
+  the version too, and CI fails when the committed parser differs from a generated one. Commit both, and push the tag
+  `vX.Y.P`. The tag starts `.github/workflows/publish.yml`, which creates the GitHub release and publishes to crates.io
+  and PyPI.
+- Before the first tag, set up the registries once:
+  - In the repository settings, create the environments `crates` and `pypi`.
+  - On PyPI, add a pending trusted publisher for the project `tree-sitter-golang`: owner `GaijinEntertainment`,
+    repository `tree-sitter-golang`, workflow `publish.yml`, environment `pypi`.
+  - crates.io accepts a trusted publisher only for a crate that exists. Publish the first version with `cargo publish`
+    and an API token of a crate owner, then add the trusted publisher: repository
+    `GaijinEntertainment/tree-sitter-golang`, workflow `publish.yml`, environment `crates`.
+- The publish workflow does not publish to npm: the npm package `tree-sitter-golang` belongs to another account.
+- The GitHub release job attests its artifacts, which needs a public repository.
+- A reusable workflow that receives `id-token: write` is pinned to a commit SHA, never to a branch.
 
 ## Verification
 
