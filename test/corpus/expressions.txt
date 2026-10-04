@@ -140,7 +140,8 @@ var d = m["k"]
       value: (expression_list
         (index_expression
           operand: (identifier)
-          index: (interpreted_string_literal))))))
+          index: (interpreted_string_literal
+            (string_content)))))))
 
 ================================================================================
 Generic instantiation
@@ -268,7 +269,8 @@ var e = func() int(f)
           function: (slice_type
             element: (type_identifier))
           arguments: (argument_list
-            (interpreted_string_literal))))))
+            (interpreted_string_literal
+              (string_content)))))))
   (var_declaration
     (var_spec
       name: (identifier)
@@ -345,7 +347,8 @@ var f = &pkg.T[int]{}
             value: (type_identifier))
           body: (literal_value
             (keyed_element
-              key: (interpreted_string_literal)
+              key: (interpreted_string_literal
+                (string_content))
               value: (int_literal)))))))
   (var_declaration
     (var_spec
@@ -407,7 +410,8 @@ var line = Line{name: "diagonal", q: Point3D{1, 1, 1}}
           body: (literal_value
             (keyed_element
               key: (identifier)
-              value: (interpreted_string_literal))
+              value: (interpreted_string_literal
+                (string_content)))
             (keyed_element
               key: (identifier)
               value: (composite_literal

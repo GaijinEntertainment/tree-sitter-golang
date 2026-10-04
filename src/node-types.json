@@ -2109,6 +2109,10 @@
         {
           "type": "escape_sequence",
           "named": true
+        },
+        {
+          "type": "string_content",
+          "named": true
         }
       ]
     }
@@ -2676,6 +2680,21 @@
           }
         ]
       }
+    }
+  },
+  {
+    "type": "raw_string_literal",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": false,
+      "types": [
+        {
+          "type": "string_content",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -3801,6 +3820,10 @@
     "named": false
   },
   {
+    "type": "`",
+    "named": false
+  },
+  {
     "type": "blank_identifier",
     "named": true
   },
@@ -3922,10 +3945,6 @@
     "named": false
   },
   {
-    "type": "raw_string_literal",
-    "named": true
-  },
-  {
     "type": "return",
     "named": false
   },
@@ -3936,6 +3955,10 @@
   {
     "type": "select",
     "named": false
+  },
+  {
+    "type": "string_content",
+    "named": true
   },
   {
     "type": "struct",

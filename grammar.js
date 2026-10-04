@@ -763,11 +763,17 @@ export default grammar({
 
     _string_literal: ($) => choice($.raw_string_literal, $.interpreted_string_literal),
 
-    raw_string_literal: (_) => /`[^`]*`/,
+    raw_string_literal: ($) => seq(
+      '`',
+      optional(alias($._raw_string_content, $.string_content)),
+      token.immediate('`'),
+    ),
+
+    _raw_string_content: (_) => token.immediate(prec(1, /[^`]+/)),
 
     interpreted_string_literal: ($) => seq(
       '"',
-      repeat(choice($._interpreted_string_content, $.escape_sequence)),
+      repeat(choice(alias($._interpreted_string_content, $.string_content), $.escape_sequence)),
       token.immediate('"'),
     ),
 
