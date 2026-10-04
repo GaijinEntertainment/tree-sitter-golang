@@ -10,6 +10,12 @@ import (
 	str "strings"
 	// <- module
 	//  ^ string
+	. "math"
+	// <- punctuation.special
+	//^ string
+	_ "embed"
+	// <- variable.builtin
+	//^ string
 )
 
 // Pi is a constant.
@@ -65,6 +71,7 @@ func Sum[T Number](values ...T) (total T) {
 //                               ^ variable.parameter
 	for _, v := range values {
 	// <- keyword.repeat
+	//  ^ variable.builtin
 	//       ^ operator
 	//          ^ keyword.repeat
 		total += v

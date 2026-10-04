@@ -162,8 +162,22 @@
                     "type": "CHOICE",
                     "members": [
                       {
-                        "type": "STRING",
-                        "value": "."
+                        "type": "ALIAS",
+                        "content": {
+                          "type": "STRING",
+                          "value": "."
+                        },
+                        "named": true,
+                        "value": "dot"
+                      },
+                      {
+                        "type": "ALIAS",
+                        "content": {
+                          "type": "STRING",
+                          "value": "_"
+                        },
+                        "named": true,
+                        "value": "blank_identifier"
                       },
                       {
                         "type": "ALIAS",

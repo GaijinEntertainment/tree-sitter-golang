@@ -27,9 +27,10 @@ import (
       name: (package_identifier)
       path: (interpreted_string_literal))
     (import_spec
+      name: (dot)
       path: (interpreted_string_literal))
     (import_spec
-      name: (package_identifier)
+      name: (blank_identifier)
       path: (interpreted_string_literal))))
 
 ================================================================================

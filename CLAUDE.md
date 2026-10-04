@@ -63,6 +63,9 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
   `isTypeElem` in `go/parser`), `<-` before `chan` (as the re-association in `go/parser`), and an expression switch
   over `.(type)`.
 - Every keyword is in `KEYWORDS`, the reserved word set; an identifier never matches one.
+- The `name` of an `import_spec` has one node kind for each import form, because each form binds differently: `dot`
+  (`.`) declares the exported identifiers of the package in the file block, `blank_identifier` (`_`) binds nothing,
+  and `package_identifier` binds that name to the package. Everywhere else `_` is an `identifier`, as in `go/ast`.
 - Every corpus input without `:error` passes both parsers, and every `:error` input fails at least one. Check a new case
   with both parsers before you add it.
 - In `queries/highlights.scm`, a later pattern overrides an earlier one in both tree-sitter-highlight and Neovim. Put a

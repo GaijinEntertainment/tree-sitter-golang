@@ -1930,8 +1930,12 @@
         "required": false,
         "types": [
           {
-            "type": ".",
-            "named": false
+            "type": "blank_identifier",
+            "named": true
+          },
+          {
+            "type": "dot",
+            "named": true
           },
           {
             "type": "package_identifier",
@@ -3797,6 +3801,10 @@
     "named": false
   },
   {
+    "type": "blank_identifier",
+    "named": true
+  },
+  {
     "type": "break",
     "named": false
   },
@@ -3828,6 +3836,10 @@
   {
     "type": "defer",
     "named": false
+  },
+  {
+    "type": "dot",
+    "named": true
   },
   {
     "type": "else",

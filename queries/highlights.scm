@@ -37,6 +37,13 @@
 (variadic_parameter_declaration
   name: (identifier) @variable.parameter)
 
+(blank_identifier) @variable.builtin
+
+((identifier) @variable.builtin
+  (#eq? @variable.builtin "_"))
+
+(dot) @punctuation.special
+
 (function_declaration
   name: (identifier) @function)
 
