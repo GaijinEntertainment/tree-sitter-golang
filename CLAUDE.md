@@ -27,6 +27,8 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
   change.
 - `queries/highlights.scm` - editor highlighting. `test/highlight/` holds its capture assertions, in a file that
   `//go:build ignore` keeps out of Go builds.
+- `queries/injections.scm` - the strings that another grammar parses: the pattern argument of the `regexp` functions,
+  for the `regex` grammar.
 - `queries/tags.scm` - the definitions and references for code navigation (`tree-sitter tags`). `test/tags/` holds
   its tag assertions.
 - `bindings/`, the package manifests (`binding.gyp`, `Cargo.toml`, `CMakeLists.txt`, `go.mod`, `Makefile`,
@@ -74,6 +76,8 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
   specific pattern after the general pattern, and give each pattern one capture: tree-sitter-highlight drops every
   capture of an earlier match that shares a node with a later match.
 - A `#match?` regex must mean the same in Rust regex syntax and in Vim very-magic syntax (Neovim).
+- An injection takes an interpreted string only when it holds no escape sequence: the source text of an escape is not
+  the character that the pattern sees.
 - In `queries/tags.scm`, tree-sitter-tags keeps one tag per name node, from the earliest pattern that matches it. Put
   a specific pattern, such as an interface type, before the general pattern for the same node.
 
@@ -84,6 +88,8 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
   `npm run lint`.
 - After a change to `queries/highlights.scm` or `queries/tags.scm`, run `tree-sitter test`, which runs the
   assertions in `test/highlight/` and `test/tags/`.
+- `tree-sitter test` has no injection assertions. After a change to `queries/injections.scm`, run
+  `tree-sitter query queries/injections.scm <file>` on a file that holds each injected and each excluded form.
 - After a change to `grammar.js` or `src/scanner.c`, also parse the Go distribution:
 
   ```sh
