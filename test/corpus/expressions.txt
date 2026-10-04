@@ -70,7 +70,7 @@ var e = <-ch
         (unary_expression
           operand: (composite_literal
             type: (type_identifier)
-            body: (literal_value))))))
+            value: (literal_value))))))
   (var_declaration
     (var_spec
       name: (identifier)
@@ -111,7 +111,7 @@ var d = m["k"]
                 operand: (identifier)
                 field: (field_identifier))
               field: (field_identifier))
-            arguments: (argument_list
+            arguments: (arguments
               (int_literal)
               (int_literal)))
           index: (int_literal)))))
@@ -121,7 +121,7 @@ var d = m["k"]
       value: (expression_list
         (call_expression
           function: (identifier)
-          arguments: (argument_list
+          arguments: (arguments
             (identifier))))))
   (var_declaration
     (var_spec
@@ -129,7 +129,7 @@ var d = m["k"]
       value: (expression_list
         (call_expression
           function: (identifier)
-          arguments: (argument_list
+          arguments: (arguments
             (slice_type
               element: (type_identifier))
             (int_literal)
@@ -166,7 +166,7 @@ var b = Sum[float64]
             operand: (identifier)
             index: (identifier)
             index: (identifier))
-          arguments: (argument_list
+          arguments: (arguments
             (identifier)
             (identifier))))))
   (var_declaration
@@ -199,8 +199,8 @@ var d = s[:n:n]
       value: (expression_list
         (slice_expression
           operand: (identifier)
-          start: (int_literal)
-          end: (int_literal)))))
+          low: (int_literal)
+          high: (int_literal)))))
   (var_declaration
     (var_spec
       name: (identifier)
@@ -213,17 +213,17 @@ var d = s[:n:n]
       value: (expression_list
         (slice_expression
           operand: (identifier)
-          start: (int_literal)
-          end: (int_literal)
-          capacity: (int_literal)))))
+          low: (int_literal)
+          high: (int_literal)
+          max: (int_literal)))))
   (var_declaration
     (var_spec
       name: (identifier)
       value: (expression_list
         (slice_expression
           operand: (identifier)
-          end: (identifier)
-          capacity: (identifier))))))
+          high: (identifier)
+          max: (identifier))))))
 
 ================================================================================
 Type assertions and conversions
@@ -248,7 +248,7 @@ var e = func() int(f)
       value: (expression_list
         (type_assertion_expression
           operand: (identifier)
-          type: (qualified_type
+          type: (qualified_identifier
             package: (package_identifier)
             name: (type_identifier))))))
   (var_declaration
@@ -259,7 +259,7 @@ var e = func() int(f)
           function: (parenthesized_expression
             (unary_expression
               operand: (identifier)))
-          arguments: (argument_list
+          arguments: (arguments
             (identifier))))))
   (var_declaration
     (var_spec
@@ -268,7 +268,7 @@ var e = func() int(f)
         (call_expression
           function: (slice_type
             element: (type_identifier))
-          arguments: (argument_list
+          arguments: (arguments
             (interpreted_string_literal
               (string_content)))))))
   (var_declaration
@@ -278,8 +278,8 @@ var e = func() int(f)
         (call_expression
           function: (parenthesized_expression
             (channel_type
-              value: (type_identifier)))
-          arguments: (argument_list
+              element: (type_identifier)))
+          arguments: (arguments
             (identifier))))))
   (var_declaration
     (var_spec
@@ -287,9 +287,9 @@ var e = func() int(f)
       value: (expression_list
         (call_expression
           function: (function_type
-            parameters: (parameter_list)
+            parameters: (parameters)
             result: (type_identifier))
-          arguments: (argument_list
+          arguments: (arguments
             (identifier)))))))
 
 ================================================================================
@@ -316,13 +316,13 @@ var f = &pkg.T[int]{}
       value: (expression_list
         (composite_literal
           type: (type_identifier)
-          body: (literal_value
+          value: (literal_value
             (keyed_element
               key: (identifier)
-              value: (int_literal))
+              element: (int_literal))
             (keyed_element
               key: (identifier)
-              value: (int_literal)))))))
+              element: (int_literal)))))))
   (var_declaration
     (var_spec
       name: (identifier)
@@ -330,7 +330,7 @@ var f = &pkg.T[int]{}
         (composite_literal
           type: (slice_type
             element: (type_identifier))
-          body: (literal_value
+          value: (literal_value
             (literal_value
               (int_literal)
               (int_literal))
@@ -344,12 +344,12 @@ var f = &pkg.T[int]{}
         (composite_literal
           type: (map_type
             key: (type_identifier)
-            value: (type_identifier))
-          body: (literal_value
+            element: (type_identifier))
+          value: (literal_value
             (keyed_element
               key: (interpreted_string_literal
                 (string_content))
-              value: (int_literal)))))))
+              element: (int_literal)))))))
   (var_declaration
     (var_spec
       name: (identifier)
@@ -357,7 +357,7 @@ var f = &pkg.T[int]{}
         (composite_literal
           type: (implicit_length_array_type
             element: (type_identifier))
-          body: (literal_value
+          value: (literal_value
             (int_literal)
             (int_literal)
             (int_literal))))))
@@ -370,10 +370,10 @@ var f = &pkg.T[int]{}
             (field_declaration
               name: (field_identifier)
               type: (type_identifier)))
-          body: (literal_value
+          value: (literal_value
             (keyed_element
               key: (identifier)
-              value: (int_literal)))))))
+              element: (int_literal)))))))
   (var_declaration
     (var_spec
       name: (identifier)
@@ -381,12 +381,12 @@ var f = &pkg.T[int]{}
         (unary_expression
           operand: (composite_literal
             type: (generic_type
-              type: (qualified_type
+              type: (qualified_identifier
                 package: (package_identifier)
                 name: (type_identifier))
               type_arguments: (type_arguments
                 (type_identifier)))
-            body: (literal_value)))))))
+            value: (literal_value)))))))
 
 ================================================================================
 Struct literal keys that name promoted fields
@@ -407,16 +407,16 @@ var line = Line{name: "diagonal", q: Point3D{1, 1, 1}}
       value: (expression_list
         (composite_literal
           type: (type_identifier)
-          body: (literal_value
+          value: (literal_value
             (keyed_element
               key: (identifier)
-              value: (interpreted_string_literal
+              element: (interpreted_string_literal
                 (string_content)))
             (keyed_element
               key: (identifier)
-              value: (composite_literal
+              element: (composite_literal
                 type: (type_identifier)
-                body: (literal_value
+                value: (literal_value
                   (int_literal)
                   (int_literal)
                   (int_literal))))))))))
@@ -440,7 +440,7 @@ var g = func() {}()
       name: (identifier)
       value: (expression_list
         (function_literal
-          parameters: (parameter_list
+          parameters: (parameters
             (parameter_declaration
               name: (identifier)
               type: (type_identifier)))
@@ -457,9 +457,9 @@ var g = func() {}()
       value: (expression_list
         (call_expression
           function: (function_literal
-            parameters: (parameter_list)
+            parameters: (parameters)
             body: (block))
-          arguments: (argument_list))))))
+          arguments: (arguments))))))
 
 ================================================================================
 Method expressions
@@ -522,7 +522,7 @@ var q = new(yearsSince(born))
       value: (expression_list
         (call_expression
           function: (identifier)
-          arguments: (argument_list
+          arguments: (arguments
             (identifier))))))
   (var_declaration
     (var_spec
@@ -530,8 +530,8 @@ var q = new(yearsSince(born))
       value: (expression_list
         (call_expression
           function: (identifier)
-          arguments: (argument_list
+          arguments: (arguments
             (call_expression
               function: (identifier)
-              arguments: (argument_list
+              arguments: (arguments
                 (identifier)))))))))

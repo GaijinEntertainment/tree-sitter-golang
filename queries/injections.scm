@@ -2,7 +2,7 @@
   function: (selector_expression
     operand: (identifier) @_package
     field: (field_identifier) @_function)
-  arguments: (argument_list
+  arguments: (arguments
     .
     [
       (raw_string_literal

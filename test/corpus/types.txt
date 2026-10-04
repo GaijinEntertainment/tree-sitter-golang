@@ -31,7 +31,7 @@ var d [2][3]float64
       type: (slice_type
         element: (map_type
           key: (type_identifier)
-          value: (slice_type
+          element: (slice_type
             element: (type_identifier))))))
   (var_declaration
     (var_spec
@@ -64,36 +64,36 @@ var f <-chan <-chan int
     (var_spec
       name: (identifier)
       type: (channel_type
-        value: (type_identifier))))
+        element: (type_identifier))))
   (var_declaration
     (var_spec
       name: (identifier)
       type: (channel_type
-        value: (type_identifier))))
+        element: (type_identifier))))
   (var_declaration
     (var_spec
       name: (identifier)
       type: (channel_type
-        value: (type_identifier))))
+        element: (type_identifier))))
   (var_declaration
     (var_spec
       name: (identifier)
       type: (channel_type
-        value: (channel_type
-          value: (type_identifier)))))
+        element: (channel_type
+          element: (type_identifier)))))
   (var_declaration
     (var_spec
       name: (identifier)
       type: (channel_type
-        value: (parenthesized_type
+        element: (parenthesized_type
           (channel_type
-            value: (type_identifier))))))
+            element: (type_identifier))))))
   (var_declaration
     (var_spec
       name: (identifier)
       type: (channel_type
-        value: (channel_type
-          value: (type_identifier))))))
+        element: (channel_type
+          element: (type_identifier))))))
 
 ================================================================================
 Function types
@@ -114,17 +114,17 @@ var h func() func() int
     (var_spec
       name: (identifier)
       type: (function_type
-        parameters: (parameter_list))))
+        parameters: (parameters))))
   (var_declaration
     (var_spec
       name: (identifier)
       type: (function_type
-        parameters: (parameter_list
+        parameters: (parameters
           (parameter_declaration
             type: (type_identifier))
-          (variadic_parameter_declaration
+          (parameter_declaration
             type: (type_identifier)))
-        result: (parameter_list
+        result: (parameters
           (parameter_declaration
             type: (type_identifier))
           (parameter_declaration
@@ -133,9 +133,9 @@ var h func() func() int
     (var_spec
       name: (identifier)
       type: (function_type
-        parameters: (parameter_list)
+        parameters: (parameters)
         result: (function_type
-          parameters: (parameter_list)
+          parameters: (parameters)
           result: (type_identifier))))))
 
 ================================================================================
@@ -157,7 +157,7 @@ var d (int)
   (var_declaration
     (var_spec
       name: (identifier)
-      type: (qualified_type
+      type: (qualified_identifier
         package: (package_identifier)
         name: (type_identifier))))
   (var_declaration
@@ -171,7 +171,7 @@ var d (int)
     (var_spec
       name: (identifier)
       type: (generic_type
-        type: (qualified_type
+        type: (qualified_identifier
           package: (package_identifier)
           name: (type_identifier))
         type_arguments: (type_arguments

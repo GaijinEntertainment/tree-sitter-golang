@@ -17,7 +17,7 @@ func f() {
     name: (package_identifier))
   (function_declaration
     name: (identifier)
-    parameters: (parameter_list)
+    parameters: (parameters)
     body: (block
       (short_var_declaration
         left: (expression_list
@@ -51,16 +51,16 @@ func f() { if x { return }; g() }
     name: (package_identifier))
   (function_declaration
     name: (identifier)
-    parameters: (parameter_list)
+    parameters: (parameters)
     body: (block
       (if_statement
         condition: (identifier)
-        consequence: (block
+        body: (block
           (return_statement)))
       (expression_statement
         (call_expression
           function: (identifier)
-          arguments: (argument_list))))))
+          arguments: (arguments))))))
 
 ================================================================================
 Expressions continue after an operator at a line end
@@ -105,7 +105,7 @@ func f() {
     name: (package_identifier))
   (function_declaration
     name: (identifier)
-    parameters: (parameter_list)
+    parameters: (parameters)
     body: (block
       (short_var_declaration
         left: (expression_list
@@ -145,7 +145,7 @@ var y = []int{
       value: (expression_list
         (call_expression
           function: (identifier)
-          arguments: (argument_list
+          arguments: (arguments
             (identifier)
             (identifier))))))
   (var_declaration
@@ -155,7 +155,7 @@ var y = []int{
         (composite_literal
           type: (slice_type
             element: (type_identifier))
-          body: (literal_value
+          value: (literal_value
             (int_literal)
             (int_literal)))))))
 
@@ -179,7 +179,7 @@ func f() {
     name: (package_identifier))
   (function_declaration
     name: (identifier)
-    parameters: (parameter_list)
+    parameters: (parameters)
     body: (block
       (if_statement
         condition: (binary_expression
@@ -187,8 +187,8 @@ func f() {
           right: (parenthesized_expression
             (composite_literal
               type: (type_identifier)
-              body: (literal_value))))
-        consequence: (block))
+              value: (literal_value))))
+        body: (block))
       (for_statement
         (range_clause
           left: (expression_list
@@ -197,7 +197,7 @@ func f() {
           right: (composite_literal
             type: (slice_type
               element: (type_identifier))
-            body: (literal_value
+            value: (literal_value
               (literal_value
                 (int_literal)))))
         body: (block)))))
@@ -222,7 +222,7 @@ func f() {
     name: (package_identifier))
   (function_declaration
     name: (identifier)
-    parameters: (parameter_list)
+    parameters: (parameters)
     body: (block
       (short_var_declaration
         left: (expression_list
@@ -236,7 +236,7 @@ func f() {
         (expression_statement
           (call_expression
             function: (identifier)
-            arguments: (argument_list
+            arguments: (arguments
               (identifier))))))))
 
 ================================================================================
@@ -256,7 +256,7 @@ type S struct {
   (package_clause
     name: (package_identifier))
   (type_declaration
-    (type_spec
+    (type_definition
       name: (type_identifier)
       type: (struct_type
         (field_declaration
@@ -289,10 +289,10 @@ func f() {
     name: (package_identifier))
   (function_declaration
     name: (identifier)
-    parameters: (parameter_list)
+    parameters: (parameters)
     body: (block
       (expression_switch_statement
-        initializer: (expression_statement
+        init_statement: (expression_statement
           (identifier))))))
 
 ================================================================================
@@ -316,13 +316,13 @@ L:
     name: (package_identifier))
   (function_declaration
     name: (identifier)
-    parameters: (parameter_list)
+    parameters: (parameters)
     body: (block
       (go_statement
         call: (call_expression
           function: (identifier)
-          arguments: (argument_list)))
+          arguments: (arguments)))
       (labeled_statement
-        label: (label_name)
+        label: (label)
         statement: (goto_statement
-          label: (label_name))))))
+          label: (label))))))

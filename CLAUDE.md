@@ -46,6 +46,15 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
 
 ## Rules
 
+- A node kind takes the name of the specification production that it parses, in snake_case with each abbreviation
+  spelled out: `IfStmt` is `if_statement`, `TypeParamDecl` is `type_parameter_declaration`, `Parameters` is
+  `parameters`. A construct without a production takes the term of the specification prose (`blank_identifier`,
+  `generic_type`), else the `go/ast` name with `Expr` spelled out (`call_expression`). The identifier roles keep the
+  tree-sitter names `type_identifier`, `field_identifier`, and `package_identifier`. A `default` branch is a clause of
+  its switch or select without values, as in the specification.
+- A field follows the same order: the production or prose term (`init_statement`, `post_statement`, `element`, `low`,
+  `high`, `max`), else the `go/ast` field (`body` and `else` of an `if`). The two sides of an assignment, a short
+  variable declaration, a binary expression, a range clause, and a receive statement are `left` and `right`.
 - Model the repository setup (workflows, lint, lockfiles, README) on the official grammars of the tree-sitter
   organization, such as tree-sitter/tree-sitter-cpp. `README.md` holds only the badges, a short description of the
   grammar, and references. Editor setup, binding use, and maintainer procedures stay out of it.
@@ -60,7 +69,7 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
 - Go inserts a semicolon at a line end after an identifier, a literal, `)`, `]`, `}`, `++`, `--`, `break`, `continue`,
   `return` or `fallthrough`. A new position after such a token where no terminator is valid takes `_same_line`,
   `_brace_on_same_line`, `_element_end` or `_colon_on_same_line`.
-- An empty statement, the empty initializer and condition of a `for` clause, and a label without a statement end with
+- An empty statement, the empty init statement and condition of a `for` clause, and a label without a statement end with
   an explicit `;` only, because Go inserts no semicolon after `;`, `{` or `:`.
 - The generator copies the fields of an aliased hidden rule into the parent node, and `child_by_field_name` on the
   parent then returns the wrong child. A rule that has fields and appears only under an alias gets a visible name.

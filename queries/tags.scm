@@ -25,10 +25,10 @@
   (type_declaration
     .
     [
-      (type_spec
+      (type_definition
         name: (type_identifier) @name
         type: (interface_type))
-      (type_alias
+      (alias_declaration
         name: (type_identifier) @name
         type: (interface_type))
     ] @definition.interface
@@ -43,9 +43,9 @@
   (type_declaration
     .
     [
-      (type_spec
+      (type_definition
         name: (type_identifier) @name)
-      (type_alias
+      (alias_declaration
         name: (type_identifier) @name)
     ] @definition.class
     .)
@@ -57,10 +57,10 @@
   (comment)* @doc
   .
   [
-    (type_spec
+    (type_definition
       name: (type_identifier) @name
       type: (interface_type))
-    (type_alias
+    (alias_declaration
       name: (type_identifier) @name
       type: (interface_type))
   ] @definition.interface
@@ -71,9 +71,9 @@
   (comment)* @doc
   .
   [
-    (type_spec
+    (type_definition
       name: (type_identifier) @name)
-    (type_alias
+    (alias_declaration
       name: (type_identifier) @name)
   ] @definition.class
   (#strip! @doc "^//\\s?|^/\\*\\s*|\\s*\\*/$")
@@ -108,12 +108,12 @@
 (composite_literal
   type: [
     (type_identifier) @name
-    (qualified_type
+    (qualified_identifier
       name: (type_identifier) @name)
     (generic_type
       type: [
         (type_identifier) @name
-        (qualified_type
+        (qualified_identifier
           name: (type_identifier) @name)
       ])
   ]) @reference.class

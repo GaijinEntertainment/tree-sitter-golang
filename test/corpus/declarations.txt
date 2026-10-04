@@ -120,7 +120,7 @@ var (
       name: (identifier)
       type: (map_type
         key: (type_identifier)
-        value: (type_identifier))
+        element: (type_identifier))
       value: (expression_list
         (identifier)))))
 
@@ -143,25 +143,25 @@ type (
   (package_clause
     name: (package_identifier))
   (type_declaration
-    (type_spec
+    (type_definition
       name: (type_identifier)
       type: (type_identifier)))
   (type_declaration
-    (type_alias
+    (alias_declaration
       name: (type_identifier)
       type: (type_identifier)))
   (type_declaration
-    (type_spec
+    (type_definition
       name: (type_identifier)
       type: (struct_type
         (field_declaration
           name: (field_identifier)
           name: (field_identifier)
           type: (type_identifier))))
-    (type_spec
+    (type_definition
       name: (type_identifier)
       type: (function_type
-        parameters: (parameter_list
+        parameters: (parameters
           (parameter_declaration
             type: (type_identifier)))
         result: (type_identifier)))))
@@ -187,9 +187,9 @@ type Set[T comparable] = map[T]struct{}
   (package_clause
     name: (package_identifier))
   (type_declaration
-    (type_spec
+    (type_definition
       name: (type_identifier)
-      type_parameters: (type_parameter_list
+      type_parameters: (type_parameters
         (type_parameter_declaration
           name: (type_identifier)
           constraint: (type_elem
@@ -206,9 +206,9 @@ type Set[T comparable] = map[T]struct{}
           name: (field_identifier)
           type: (type_identifier)))))
   (type_declaration
-    (type_spec
+    (type_definition
       name: (type_identifier)
-      type_parameters: (type_parameter_list
+      type_parameters: (type_parameters
         (type_parameter_declaration
           name: (type_identifier)
           constraint: (type_elem
@@ -225,16 +225,16 @@ type Set[T comparable] = map[T]struct{}
           name: (field_identifier)
           type: (type_identifier)))))
   (type_declaration
-    (type_alias
+    (alias_declaration
       name: (type_identifier)
-      type_parameters: (type_parameter_list
+      type_parameters: (type_parameters
         (type_parameter_declaration
           name: (type_identifier)
           constraint: (type_elem
             (type_identifier))))
       type: (map_type
         key: (type_identifier)
-        value: (struct_type)))))
+        element: (struct_type)))))
 
 ================================================================================
 Function declarations
@@ -254,19 +254,19 @@ func Map[T, U any](xs []T, f func(T) U) []U { return nil }
     name: (package_identifier))
   (function_declaration
     name: (identifier)
-    parameters: (parameter_list)
+    parameters: (parameters)
     body: (block))
   (function_declaration
     name: (identifier)
-    parameters: (parameter_list
+    parameters: (parameters
       (parameter_declaration
         name: (identifier)
         name: (identifier)
         type: (type_identifier))
-      (variadic_parameter_declaration
+      (parameter_declaration
         name: (identifier)
         type: (type_identifier)))
-    result: (parameter_list
+    result: (parameters
       (parameter_declaration
         name: (identifier)
         type: (type_identifier))
@@ -277,7 +277,7 @@ func Map[T, U any](xs []T, f func(T) U) []U { return nil }
       (return_statement)))
   (function_declaration
     name: (identifier)
-    parameters: (parameter_list
+    parameters: (parameters
       (parameter_declaration
         type: (type_identifier))
       (parameter_declaration
@@ -285,13 +285,13 @@ func Map[T, U any](xs []T, f func(T) U) []U { return nil }
     result: (type_identifier))
   (function_declaration
     name: (identifier)
-    type_parameters: (type_parameter_list
+    type_parameters: (type_parameters
       (type_parameter_declaration
         name: (type_identifier)
         name: (type_identifier)
         constraint: (type_elem
           (type_identifier))))
-    parameters: (parameter_list
+    parameters: (parameters
       (parameter_declaration
         name: (identifier)
         type: (slice_type
@@ -299,7 +299,7 @@ func Map[T, U any](xs []T, f func(T) U) []U { return nil }
       (parameter_declaration
         name: (identifier)
         type: (function_type
-          parameters: (parameter_list
+          parameters: (parameters
             (parameter_declaration
               type: (type_identifier)))
           result: (type_identifier))))
@@ -326,44 +326,44 @@ func (r *Rand) N[Int intType](n Int) Int { return n }
   (package_clause
     name: (package_identifier))
   (method_declaration
-    receiver: (parameter_list
+    receiver: (parameters
       (parameter_declaration
         name: (identifier)
         type: (pointer_type
           (type_identifier))))
     name: (field_identifier)
-    parameters: (parameter_list
+    parameters: (parameters
       (parameter_declaration
         name: (identifier)
         type: (type_identifier)))
     body: (block))
   (method_declaration
-    receiver: (parameter_list
+    receiver: (parameters
       (parameter_declaration
         type: (generic_type
           type: (type_identifier)
           type_arguments: (type_arguments
             (type_identifier)))))
     name: (field_identifier)
-    parameters: (parameter_list)
+    parameters: (parameters)
     result: (type_identifier)
     body: (block
       (return_statement
         result: (expression_list
           (int_literal)))))
   (method_declaration
-    receiver: (parameter_list
+    receiver: (parameters
       (parameter_declaration
         name: (identifier)
         type: (pointer_type
           (type_identifier))))
     name: (field_identifier)
-    type_parameters: (type_parameter_list
+    type_parameters: (type_parameters
       (type_parameter_declaration
         name: (type_identifier)
         constraint: (type_elem
           (type_identifier))))
-    parameters: (parameter_list
+    parameters: (parameters
       (parameter_declaration
         name: (identifier)
         type: (type_identifier)))
@@ -394,7 +394,7 @@ type S struct {
   (package_clause
     name: (package_identifier))
   (type_declaration
-    (type_spec
+    (type_definition
       name: (type_identifier)
       type: (struct_type
         (field_declaration
@@ -402,7 +402,7 @@ type S struct {
           name: (field_identifier)
           type: (type_identifier))
         (field_declaration
-          type: (qualified_type
+          type: (qualified_identifier
             package: (package_identifier)
             name: (type_identifier)))
         (field_declaration
@@ -443,16 +443,16 @@ type I interface {
   (package_clause
     name: (package_identifier))
   (type_declaration
-    (type_spec
+    (type_definition
       name: (type_identifier)
       type: (interface_type
         (type_elem
-          (qualified_type
+          (qualified_identifier
             package: (package_identifier)
             name: (type_identifier)))
         (method_elem
           name: (field_identifier)
-          parameters: (parameter_list)
+          parameters: (parameters)
           result: (type_identifier))
         (type_elem
           (underlying_type
@@ -479,15 +479,15 @@ type D [P * C]int
   (package_clause
     name: (package_identifier))
   (type_declaration
-    (type_spec
+    (type_definition
       name: (type_identifier)
       type: (array_type
         length: (identifier)
         element: (type_identifier))))
   (type_declaration
-    (type_spec
+    (type_definition
       name: (type_identifier)
-      type_parameters: (type_parameter_list
+      type_parameters: (type_parameters
         (type_parameter_declaration
           name: (type_identifier)
           constraint: (type_elem
@@ -495,9 +495,9 @@ type D [P * C]int
               (type_identifier)))))
       type: (struct_type)))
   (type_declaration
-    (type_spec
+    (type_definition
       name: (type_identifier)
-      type_parameters: (type_parameter_list
+      type_parameters: (type_parameters
         (type_parameter_declaration
           name: (type_identifier)
           constraint: (type_elem
@@ -505,7 +505,7 @@ type D [P * C]int
               (struct_type)))))
       type: (struct_type)))
   (type_declaration
-    (type_spec
+    (type_definition
       name: (type_identifier)
       type: (array_type
         length: (binary_expression

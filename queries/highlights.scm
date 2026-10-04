@@ -4,7 +4,7 @@
 
 (package_identifier) @module
 
-(label_name) @label
+(label) @label
 
 (type_identifier) @type
 
@@ -13,10 +13,10 @@
     "any" "bool" "byte" "comparable" "complex64" "complex128" "error" "float32" "float64" "int" "int8" "int16"
     "int32" "int64" "rune" "string" "uint" "uint8" "uint16" "uint32" "uint64" "uintptr"))
 
-(type_spec
+(type_definition
   name: (type_identifier) @type.definition)
 
-(type_alias
+(alias_declaration
   name: (type_identifier) @type.definition)
 
 (const_spec
@@ -32,9 +32,6 @@
   (#any-of? @boolean "true" "false"))
 
 (parameter_declaration
-  name: (identifier) @variable.parameter)
-
-(variadic_parameter_declaration
   name: (identifier) @variable.parameter)
 
 (blank_identifier) @variable.builtin

@@ -20,14 +20,14 @@ func f() {
     name: (package_identifier))
   (function_declaration
     name: (identifier)
-    parameters: (parameter_list)
+    parameters: (parameters)
     body: (block
       (short_var_declaration
         left: (expression_list
           (identifier))
         right: (expression_list
           (int_literal)))
-      (assignment_statement
+      (assignment
         left: (expression_list
           (identifier))
         right: (expression_list
@@ -37,7 +37,7 @@ func f() {
       (send_statement
         channel: (identifier)
         value: (identifier))
-      (assignment_statement
+      (assignment
         left: (expression_list
           (identifier)
           (identifier))
@@ -47,7 +47,7 @@ func f() {
       (expression_statement
         (call_expression
           function: (identifier)
-          arguments: (argument_list))))))
+          arguments: (arguments))))))
 
 ================================================================================
 If statements with initializers and else chains
@@ -69,26 +69,26 @@ func f() {
     name: (package_identifier))
   (function_declaration
     name: (identifier)
-    parameters: (parameter_list)
+    parameters: (parameters)
     body: (block
       (if_statement
-        initializer: (short_var_declaration
+        init_statement: (short_var_declaration
           left: (expression_list
             (identifier))
           right: (expression_list
             (call_expression
               function: (identifier)
-              arguments: (argument_list))))
+              arguments: (arguments))))
         condition: (binary_expression
           left: (identifier)
           right: (int_literal))
-        consequence: (block)
-        alternative: (if_statement
+        body: (block)
+        else: (if_statement
           condition: (binary_expression
             left: (identifier)
             right: (int_literal))
-          consequence: (block)
-          alternative: (block))))))
+          body: (block)
+          else: (block))))))
 
 ================================================================================
 Expression switch statements
@@ -115,28 +115,28 @@ func f() {
     name: (package_identifier))
   (function_declaration
     name: (identifier)
-    parameters: (parameter_list)
+    parameters: (parameters)
     body: (block
       (expression_switch_statement
-        initializer: (short_var_declaration
+        init_statement: (short_var_declaration
           left: (expression_list
             (identifier))
           right: (expression_list
             (call_expression
               function: (identifier)
-              arguments: (argument_list))))
+              arguments: (arguments))))
         value: (identifier)
-        (expression_case
+        (expression_case_clause
           value: (expression_list
             (int_literal)
             (int_literal))
           (fallthrough_statement))
-        (expression_case
+        (expression_case_clause
           value: (expression_list
             (int_literal)))
-        (default_case))
+        (expression_case_clause))
       (expression_switch_statement
-        (expression_case
+        (expression_case_clause
           value: (expression_list
             (binary_expression
               left: (identifier)
@@ -165,23 +165,23 @@ func f() {
     name: (package_identifier))
   (function_declaration
     name: (identifier)
-    parameters: (parameter_list)
+    parameters: (parameters)
     body: (block
       (type_switch_statement
-        alias: (identifier)
-        value: (identifier)
-        (type_case
+        name: (identifier)
+        operand: (identifier)
+        (type_case_clause
           type: (type_identifier)
           type: (type_identifier))
-        (type_case
+        (type_case_clause
           type: (type_identifier))
-        (type_case
+        (type_case_clause
           type: (pointer_type
             (type_identifier))
           type: (slice_type
             element: (type_identifier)))
-        (default_case
-          (assignment_statement
+        (type_case_clause
+          (assignment
             left: (expression_list
               (identifier))
             right: (expression_list
@@ -210,29 +210,29 @@ func f() {
     name: (package_identifier))
   (function_declaration
     name: (identifier)
-    parameters: (parameter_list)
+    parameters: (parameters)
     body: (block
       (select_statement
-        (communication_case
+        (communication_clause
           communication: (receive_statement
             left: (expression_list
               (identifier))
             right: (unary_expression
               operand: (identifier)))
-          (assignment_statement
+          (assignment
             left: (expression_list
               (identifier))
             right: (expression_list
               (identifier))))
-        (communication_case
+        (communication_clause
           communication: (send_statement
             channel: (identifier)
             value: (int_literal)))
-        (communication_case
+        (communication_clause
           communication: (receive_statement
             right: (unary_expression
               operand: (identifier))))
-        (default_case)))))
+        (communication_clause)))))
 
 ================================================================================
 For statements
@@ -262,7 +262,7 @@ func f() {
     name: (package_identifier))
   (function_declaration
     name: (identifier)
-    parameters: (parameter_list)
+    parameters: (parameters)
     body: (block
       (for_statement
         body: (block))
@@ -273,7 +273,7 @@ func f() {
         body: (block))
       (for_statement
         (for_clause
-          initializer: (short_var_declaration
+          init_statement: (short_var_declaration
             left: (expression_list
               (identifier))
             right: (expression_list
@@ -281,7 +281,7 @@ func f() {
           condition: (binary_expression
             left: (identifier)
             right: (identifier))
-          update: (inc_dec_statement
+          post_statement: (inc_dec_statement
             operand: (identifier)))
         body: (block))
       (for_statement
@@ -330,30 +330,30 @@ end:
     name: (package_identifier))
   (function_declaration
     name: (identifier)
-    parameters: (parameter_list)
+    parameters: (parameters)
     body: (block
       (labeled_statement
-        label: (label_name)
+        label: (label)
         statement: (for_statement
           body: (block
             (for_statement
               body: (block
                 (continue_statement
-                  label: (label_name))))
+                  label: (label))))
             (break_statement
-              label: (label_name)))))
+              label: (label)))))
       (goto_statement
-        label: (label_name))
+        label: (label))
       (labeled_statement
-        label: (label_name)
+        label: (label)
         statement: (go_statement
           call: (call_expression
             function: (identifier)
-            arguments: (argument_list))))
+            arguments: (arguments))))
       (defer_statement
         call: (call_expression
           function: (identifier)
-          arguments: (argument_list)))
+          arguments: (arguments)))
       (return_statement))))
 
 ================================================================================
@@ -380,18 +380,18 @@ func f() {
     name: (package_identifier))
   (function_declaration
     name: (identifier)
-    parameters: (parameter_list)
+    parameters: (parameters)
     body: (block
       (expression_switch_statement
-        (expression_case
+        (expression_case_clause
           value: (expression_list
             (identifier))
           (labeled_statement
-            label: (label_name)
+            label: (label)
             statement: (empty_statement))))
       (block
         (labeled_statement
-          label: (label_name))))))
+          label: (label))))))
 
 ================================================================================
 Declarations and blocks inside functions
@@ -416,8 +416,8 @@ func f() (int, error) {
     name: (package_identifier))
   (function_declaration
     name: (identifier)
-    parameters: (parameter_list)
-    result: (parameter_list
+    parameters: (parameters)
+    result: (parameters
       (parameter_declaration
         type: (type_identifier))
       (parameter_declaration
@@ -433,7 +433,7 @@ func f() (int, error) {
           name: (identifier)
           type: (type_identifier)))
       (type_declaration
-        (type_spec
+        (type_definition
           name: (type_identifier)
           type: (struct_type)))
       (block
@@ -462,7 +462,7 @@ func f(i any) {
     name: (package_identifier))
   (function_declaration
     name: (identifier)
-    parameters: (parameter_list
+    parameters: (parameters
       (parameter_declaration
         name: (identifier)
         type: (type_identifier)))

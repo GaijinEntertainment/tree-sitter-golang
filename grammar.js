@@ -171,7 +171,7 @@ function expressionSpine(prefix) {
     [spineName(prefix, 'composite_literal')]: ($) => prec(PREC.PRIMARY, seq(
       field('type', choice(...literalTypes($))),
       $._brace_on_same_line,
-      field('body', $.literal_value),
+      field('value', $.literal_value),
     )),
 
     [spineName(prefix, 'selector_expression')]: ($) => prec(PREC.PRIMARY, seq(
@@ -192,17 +192,17 @@ function expressionSpine(prefix) {
       '[',
       choice(
         seq(
-          optional(seq(field('start', $._expression), $._colon_on_same_line)),
+          optional(seq(field('low', $._expression), $._colon_on_same_line)),
           ':',
-          optional(seq(field('end', $._expression), $._element_end)),
+          optional(seq(field('high', $._expression), $._element_end)),
         ),
         seq(
-          optional(seq(field('start', $._expression), $._colon_on_same_line)),
+          optional(seq(field('low', $._expression), $._colon_on_same_line)),
           ':',
-          field('end', $._expression),
+          field('high', $._expression),
           $._colon_on_same_line,
           ':',
-          field('capacity', $._expression),
+          field('max', $._expression),
           $._element_end,
         ),
       ),
@@ -229,7 +229,7 @@ function expressionSpine(prefix) {
 
     [spineName(prefix, 'call_expression')]: ($) => prec(PREC.PRIMARY, seq(
       field('function', spine($, prefix, '_primary_expression')),
-      field('arguments', $.argument_list),
+      field('arguments', $.arguments),
     )),
 
     [spineName(prefix, 'expression_list')]: ($) => commaSep1(spine($, prefix, '_expression')),
@@ -238,7 +238,7 @@ function expressionSpine(prefix) {
       spine($, prefix, 'expression_statement'),
       spine($, prefix, 'send_statement'),
       spine($, prefix, 'inc_dec_statement'),
-      spine($, prefix, 'assignment_statement'),
+      spine($, prefix, 'assignment'),
       spine($, prefix, 'short_var_declaration'),
     ),
 
@@ -255,7 +255,7 @@ function expressionSpine(prefix) {
       field('operator', choice('++', '--')),
     ),
 
-    [spineName(prefix, 'assignment_statement')]: ($) => seq(
+    [spineName(prefix, 'assignment')]: ($) => seq(
       field('left', spine($, prefix, 'expression_list')),
       field('operator', choice(...ASSIGNMENT_OPERATORS)),
       field('right', spine($, prefix, 'expression_list')),
@@ -293,7 +293,7 @@ export default grammar({
   conflicts: ($) => [
     [$.parameter_declaration, $._type_name],
     [$._type_name, $.field_declaration],
-    [$.qualified_type, $._operand_expression],
+    [$.qualified_identifier, $._operand_expression],
     [$._type_name, $._operand_expression],
     [$.type_parameter_declaration, $._operand_expression],
     [$.type_parameter_declaration, $._type_name, $._operand_expression],
@@ -357,22 +357,22 @@ export default grammar({
     ),
 
     type_declaration: ($) => seq('type', choice(
-      $.type_spec,
-      $.type_alias,
-      seq('(', terminated($, choice($.type_spec, $.type_alias)), ')'),
+      $.type_definition,
+      $.alias_declaration,
+      seq('(', terminated($, choice($.type_definition, $.alias_declaration)), ')'),
     )),
 
-    type_spec: ($) => seq(
+    type_definition: ($) => seq(
       field('name', typeIdentifier($)),
       $._same_line,
-      optional(field('type_parameters', $.type_parameter_list)),
+      optional(field('type_parameters', $.type_parameters)),
       field('type', $._type),
     ),
 
-    type_alias: ($) => seq(
+    alias_declaration: ($) => seq(
       field('name', typeIdentifier($)),
       $._same_line,
-      optional(field('type_parameters', $.type_parameter_list)),
+      optional(field('type_parameters', $.type_parameters)),
       '=',
       field('type', $._type),
     ),
@@ -381,20 +381,20 @@ export default grammar({
       'func',
       field('name', $.identifier),
       $._same_line,
-      optional(field('type_parameters', $.type_parameter_list)),
-      field('parameters', $.parameter_list),
+      optional(field('type_parameters', $.type_parameters)),
+      field('parameters', $.parameters),
       optional(field('result', $._result)),
       optional(seq($._brace_on_same_line, field('body', $.block))),
     ),
 
     method_declaration: ($) => seq(
       'func',
-      field('receiver', alias($.receiver, $.parameter_list)),
+      field('receiver', alias($.receiver, $.parameters)),
       $._same_line,
       field('name', fieldIdentifier($)),
       $._same_line,
-      optional(field('type_parameters', $.type_parameter_list)),
-      field('parameters', $.parameter_list),
+      optional(field('type_parameters', $.type_parameters)),
+      field('parameters', $.parameters),
       optional(field('result', $._result)),
       optional(seq($._brace_on_same_line, field('body', $.block))),
     ),
@@ -412,7 +412,7 @@ export default grammar({
 
     receiver_parameter_declaration: ($) => seq(field('name', $.identifier), field('type', $._type)),
 
-    type_parameter_list: ($) => prec.dynamic(PREC.TYPE_PARAMETERS_OVER_ARRAY_LENGTH, seq(
+    type_parameters: ($) => prec.dynamic(PREC.TYPE_PARAMETERS_OVER_ARRAY_LENGTH, seq(
       '[',
       closedElementList($, $.type_parameter_declaration),
       ']',
@@ -423,15 +423,15 @@ export default grammar({
       field('constraint', $.type_elem),
     ),
 
-    parameter_list: ($) => seq('(', optional(choice($._named_parameters, $._unnamed_parameters)), ')'),
+    parameters: ($) => seq('(', optional(choice($._named_parameters, $._unnamed_parameters)), ')'),
 
     _named_parameters: ($) => seq(
       choice(
         seq(
           elementList($, $.parameter_declaration),
-          optional(seq($._element_end, ',', $.variadic_parameter_declaration)),
+          optional(seq($._element_end, ',', alias($.variadic_parameter_declaration, $.parameter_declaration))),
         ),
-        $.variadic_parameter_declaration,
+        alias($.variadic_parameter_declaration, $.parameter_declaration),
       ),
       $._element_end,
       optional(','),
@@ -444,10 +444,10 @@ export default grammar({
           optional(seq(
             $._element_end,
             ',',
-            alias($.unnamed_variadic_parameter_declaration, $.variadic_parameter_declaration),
+            alias($.unnamed_variadic_parameter_declaration, $.parameter_declaration),
           )),
         ),
-        alias($.unnamed_variadic_parameter_declaration, $.variadic_parameter_declaration),
+        alias($.unnamed_variadic_parameter_declaration, $.parameter_declaration),
       ),
       $._element_end,
       optional(','),
@@ -461,7 +461,7 @@ export default grammar({
 
     unnamed_variadic_parameter_declaration: ($) => seq('...', field('type', $._type)),
 
-    _result: ($) => choice($.parameter_list, $._simple_type),
+    _result: ($) => choice($.parameters, $._simple_type),
 
     _type: ($) => choice($._simple_type, $.parenthesized_type),
 
@@ -479,11 +479,11 @@ export default grammar({
       $.interface_type,
     ),
 
-    _type_name: ($) => choice(typeIdentifier($), $.qualified_type),
+    _type_name: ($) => choice(typeIdentifier($), $.qualified_identifier),
 
     parenthesized_type: ($) => seq('(', $._type, $._element_end, ')'),
 
-    qualified_type: ($) => seq(
+    qualified_identifier: ($) => seq(
       field('package', packageIdentifier($)),
       '.',
       field('name', typeIdentifier($)),
@@ -515,18 +515,18 @@ export default grammar({
       $._element_end,
       ']',
       $._same_line,
-      field('value', $._type),
+      field('element', $._type),
     )),
 
     channel_type: ($) => choice(
-      seq('chan', field('value', $._type)),
-      seq('chan', '<-', field('value', $._type)),
-      prec.dynamic(PREC.RECEIVE_CHANNEL_TYPE, seq('<-', 'chan', field('value', $._type))),
+      seq('chan', field('element', $._type)),
+      seq('chan', '<-', field('element', $._type)),
+      prec.dynamic(PREC.RECEIVE_CHANNEL_TYPE, seq('<-', 'chan', field('element', $._type))),
     ),
 
     function_type: ($) => prec.right(seq(
       'func',
-      field('parameters', $.parameter_list),
+      field('parameters', $.parameters),
       optional(field('result', $._result)),
     )),
 
@@ -552,7 +552,7 @@ export default grammar({
 
     method_elem: ($) => seq(
       field('name', fieldIdentifier($)),
-      field('parameters', $.parameter_list),
+      field('parameters', $.parameters),
       optional(field('result', $._result)),
     ),
 
@@ -627,20 +627,26 @@ export default grammar({
       optional($._header_initializer),
       field('condition', $._header_expression),
       $._brace_on_same_line,
-      field('consequence', $.block),
-      optional(seq('else', field('alternative', choice($.block, $.if_statement)))),
+      field('body', $.block),
+      optional(seq('else', field('else', choice($.block, $.if_statement)))),
     ),
 
     expression_switch_statement: ($) => seq(
       'switch',
       optional($._header_initializer),
       optional(seq(field('value', $._header_expression), $._brace_on_same_line)),
-      caseBody($, $.expression_case, $.final_expression_case),
+      caseBody($, $.expression_case_clause, $.final_expression_case_clause),
     ),
 
-    expression_case: ($) => seq('case', $._case_values, $._colon_on_same_line, ':', optional($._statement_list)),
+    expression_case_clause: ($) => seq(
+      'case',
+      $._case_values,
+      $._colon_on_same_line,
+      ':',
+      optional($._statement_list),
+    ),
 
-    final_expression_case: ($) => seq(
+    final_expression_case_clause: ($) => seq(
       'case',
       $._case_values,
       $._colon_on_same_line,
@@ -652,26 +658,32 @@ export default grammar({
 
     _case_value_list: ($) => elementList($, $._expression),
 
-    default_case: ($) => seq('default', ':', optional($._statement_list)),
+    default_clause: ($) => seq('default', ':', optional($._statement_list)),
 
-    final_default_case: ($) => seq('default', ':', $._label_ended_statement_list),
+    final_default_clause: ($) => seq('default', ':', $._label_ended_statement_list),
 
     type_switch_statement: ($) => seq(
       'switch',
       optional($._header_initializer),
-      optional(seq(field('alias', $.identifier), ':=')),
-      field('value', $._header_operand_expression),
+      optional(seq(field('name', $.identifier), ':=')),
+      field('operand', $._header_operand_expression),
       '.',
       '(',
       'type',
       ')',
       $._brace_on_same_line,
-      caseBody($, $.type_case, $.final_type_case),
+      caseBody($, $.type_case_clause, $.final_type_case_clause),
     ),
 
-    type_case: ($) => seq('case', $._type_case_list, $._colon_on_same_line, ':', optional($._statement_list)),
+    type_case_clause: ($) => seq(
+      'case',
+      $._type_case_list,
+      $._colon_on_same_line,
+      ':',
+      optional($._statement_list),
+    ),
 
-    final_type_case: ($) => seq(
+    final_type_case_clause: ($) => seq(
       'case',
       $._type_case_list,
       $._colon_on_same_line,
@@ -681,11 +693,17 @@ export default grammar({
 
     _type_case_list: ($) => elementList($, field('type', choice(prec.dynamic(1, $._type), $._expression))),
 
-    select_statement: ($) => seq('select', caseBody($, $.communication_case, $.final_communication_case)),
+    select_statement: ($) => seq('select', caseBody($, $.communication_clause, $.final_communication_clause)),
 
-    communication_case: ($) => seq('case', $._communication, $._colon_on_same_line, ':', optional($._statement_list)),
+    communication_clause: ($) => seq(
+      'case',
+      $._communication,
+      $._colon_on_same_line,
+      ':',
+      optional($._statement_list),
+    ),
 
-    final_communication_case: ($) => seq(
+    final_communication_clause: ($) => seq(
       'case',
       $._communication,
       $._colon_on_same_line,
@@ -710,19 +728,19 @@ export default grammar({
       field('body', $.block),
     ),
 
-    _header_initializer: ($) => choice(seq(field('initializer', $._header_simple_statement), $._terminator), ';'),
+    _header_initializer: ($) => choice(seq(field('init_statement', $._header_simple_statement), $._terminator), ';'),
 
     for_clause: ($) => seq(
       $._header_initializer,
       choice(seq(field('condition', $._header_expression), $._terminator), ';'),
-      optional(seq(field('update', $._header_post_statement), $._brace_on_same_line)),
+      optional(seq(field('post_statement', $._header_post_statement), $._brace_on_same_line)),
     ),
 
     _header_post_statement: ($) => choice(
       alias($.header_expression_statement, $.expression_statement),
       alias($.header_send_statement, $.send_statement),
       alias($.header_inc_dec_statement, $.inc_dec_statement),
-      alias($.header_assignment_statement, $.assignment_statement),
+      alias($.header_assignment, $.assignment),
     ),
 
     range_clause: ($) => seq(
@@ -740,13 +758,13 @@ export default grammar({
 
     function_literal: ($) => seq(
       'func',
-      field('parameters', $.parameter_list),
+      field('parameters', $.parameters),
       optional(field('result', $._result)),
       $._brace_on_same_line,
       field('body', $.block),
     ),
 
-    argument_list: ($) => seq(
+    arguments: ($) => seq(
       '(',
       optional(seq(
         elementList($, $._expression),
@@ -759,7 +777,7 @@ export default grammar({
 
     _element: ($) => choice($._expression, $.literal_value),
 
-    keyed_element: ($) => seq(field('key', $._element), $._colon_on_same_line, ':', field('value', $._element)),
+    keyed_element: ($) => seq(field('key', $._element), $._colon_on_same_line, ':', field('element', $._element)),
 
     _string_literal: ($) => choice($.raw_string_literal, $.interpreted_string_literal),
 
@@ -831,7 +849,7 @@ function packageIdentifier($) {
  * @returns {AliasRule}
  */
 function labelName($) {
-  return alias($.identifier, $.label_name);
+  return alias($.identifier, $.label);
 }
 
 // constraint: go/parser reads `type T[P X]` as type parameters when X holds a type literal or `~` term (isTypeElem)
@@ -853,8 +871,8 @@ function typeElementInExpression(rule) {
 function caseBody($, clause, finalClause) {
   return seq(
     '{',
-    repeat(choice(clause, $.default_case)),
-    optional(choice(alias(finalClause, clause), alias($.final_default_case, $.default_case))),
+    repeat(choice(clause, alias($.default_clause, clause))),
+    optional(choice(alias(finalClause, clause), alias($.final_default_clause, clause))),
     '}',
   );
 }
