@@ -3,23 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
-    paths:
-      - .github/workflows/ci.yml
-      - grammar.js
-      - src/**
-      - test/**
-      - queries/**
-      - bindings/**
-      - binding.gyp
   pull_request:
-    paths:
-      - .github/workflows/ci.yml
-      - grammar.js
-      - src/**
-      - test/**
-      - queries/**
-      - bindings/**
-      - binding.gyp
 
 concurrency:
   group: ${{github.workflow}}-${{github.ref}}
@@ -58,3 +42,45 @@ jobs:
         uses: tree-sitter/parse-action@f44ffa94f802024f27e821a72e6f2f3efc5dd521 # v4
         with:
           files: examples/*
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          cache: npm
+          node-version: lts/*
+      - name: Install modules
+        run: npm ci --legacy-peer-deps
+      - name: Run ESLint
+        run: npm run lint
+
+  fuzz:
+    name: Fuzz parser
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Run fuzzer
+        uses: tree-sitter/fuzz-action@6a1dcff00aefd038ba418bd63732a9add4901266 # v4
+
+  # The protect-main ruleset requires the status check of this job.
+  ci-ok:
+    if: always()
+    needs: [test, lint, fuzz]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check that no job failed
+        run: |
+          echo "$RESULTS"
+          [[ "$RESULTS" != *'"failure"'* && "$RESULTS" != *'"cancelled"'* ]]
+        env:
+          RESULTS: ${{toJSON(needs.*.result)}}

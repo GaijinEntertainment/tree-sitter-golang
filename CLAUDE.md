@@ -38,7 +38,7 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
   `tree-sitter.json`, and set the version with `tree-sitter version <version>`.
 - `package-lock.json`, `Cargo.lock`, `go.sum`, `Package.resolved` - lockfiles that npm, cargo, go, and swift write when
   they resolve the dependencies of the manifests. Commit them with the manifest change.
-- `.github/` - the CI, lint, fuzz, and publish workflows, dependabot, and issue templates. The publish workflow
+- `.github/` - the CI and publish workflows, dependabot, and issue templates. The publish workflow
   authenticates to crates.io and PyPI with trusted publishing and holds no registry token.
 - `eslint.config.mjs` - the lint configuration for `grammar.js` (`npm run lint`).
 - `examples/` - Go files that the CI workflow parses. `//go:build ignore` keeps them out of Go builds.
@@ -89,6 +89,9 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
 - A workflow pins each action to the commit SHA of a release and names the release in a comment
   (`actions/checkout@<sha> # v7.0.1`), which Dependabot reads to update both. A checkout sets
   `persist-credentials: false`.
+- A change reaches `main` through a pull request, merged by squash or rebase after the `ci-ok` job of
+  `.github/workflows/ci.yml` passes; the `protect-main` ruleset rejects a direct push. Add each new CI job to the
+  `needs` list of `ci-ok`.
 - An injection takes an interpreted string only when it holds no escape sequence: the source text of an escape is not
   the character that the pattern sees.
 - In `queries/tags.scm`, tree-sitter-tags keeps one tag per name node, from the earliest pattern that matches it. Put
@@ -107,6 +110,8 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
   has the version is skipped. The Go module needs no publish step: the tag on the public repository is the release.
 - A manual run of `publish.yml` rehearses a release: it runs the checks and builds every artifact, and publishes
   nothing. Run it before the first tag and after a change to the workflow.
+- The `protect-release-tags` ruleset forbids moving or deleting a `v*` tag. When a publish job fails for a reason
+  outside the repository, run the failed jobs again; when the fix is a commit, release the next version.
 - Before the first tag, set up the registries once:
   - In the repository settings, create the environments `crates` and `pypi`.
   - On PyPI, add a pending trusted publisher for the project `tree-sitter-golang`: owner `GaijinEntertainment`,
