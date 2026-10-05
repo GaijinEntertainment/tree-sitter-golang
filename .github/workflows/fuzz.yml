@@ -4,9 +4,11 @@ on:
   push:
     branches: [main]
     paths:
+      - .github/workflows/fuzz.yml
       - src/scanner.c
   pull_request:
     paths:
+      - .github/workflows/fuzz.yml
       - src/scanner.c
 
 permissions:
