@@ -86,6 +86,9 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
   specific pattern after the general pattern, and give each pattern one capture: tree-sitter-highlight drops every
   capture of an earlier match that shares a node with a later match.
 - A `#match?` regex must mean the same in Rust regex syntax and in Vim very-magic syntax (Neovim).
+- A workflow pins each action to the commit SHA of a release and names the release in a comment
+  (`actions/checkout@<sha> # v7.0.1`), which Dependabot reads to update both. A checkout sets
+  `persist-credentials: false`.
 - An injection takes an interpreted string only when it holds no escape sequence: the source text of an escape is not
   the character that the pattern sees.
 - In `queries/tags.scm`, tree-sitter-tags keeps one tag per name node, from the earliest pattern that matches it. Put
