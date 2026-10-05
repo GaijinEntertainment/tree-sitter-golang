@@ -36,6 +36,17 @@ jobs:
             exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Compare the tag with the Go module path
+        run: |
+          major=${GITHUB_REF_NAME#v}
+          major=${major%%.*}
+          expected=github.com/$GITHUB_REPOSITORY
+          [ "$major" -lt 2 ] || expected=$expected/v$major
+          module=$(sed -n 's/^module //p' go.mod)
+          if [ "$module" != "$expected" ]; then
+            echo "::error file=go.mod::module path $module must be $expected for the tag $GITHUB_REF_NAME"
+            exit 1
+          fi
 
   wasm:
     name: Build the Wasm binary

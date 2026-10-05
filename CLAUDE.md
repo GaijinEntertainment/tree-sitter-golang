@@ -102,9 +102,9 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
 - To release, set the version with `tree-sitter version X.Y.P`, then run `tree-sitter generate`, because
   `src/parser.c` holds the version too, and update the lockfiles with `cargo update --workspace --offline` and
   `npm install --package-lock-only --ignore-scripts`. Commit, and push the tag `vX.Y.P`.
-- The tag starts `.github/workflows/publish.yml`. It checks that the tag matches `tree-sitter.json`, creates the GitHub
-  release with attested artifacts, and publishes to crates.io and PyPI. A registry that already has the version is
-  skipped.
+- The tag starts `.github/workflows/publish.yml`. It checks that the tag matches `tree-sitter.json` and the Go module
+  path, creates the GitHub release with attested artifacts, and publishes to crates.io and PyPI. A registry that already
+  has the version is skipped. The Go module needs no publish step: the tag on the public repository is the release.
 - Before the first tag, set up the registries once:
   - In the repository settings, create the environments `crates` and `pypi`.
   - On PyPI, add a pending trusted publisher for the project `tree-sitter-golang`: owner `GaijinEntertainment`,
