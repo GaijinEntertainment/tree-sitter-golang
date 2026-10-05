@@ -7,18 +7,6 @@
       "type": "SEQ",
       "members": [
         {
-          "type": "CHOICE",
-          "members": [
-            {
-              "type": "SYMBOL",
-              "name": "_byte_order_mark"
-            },
-            {
-              "type": "BLANK"
-            }
-          ]
-        },
-        {
           "type": "SYMBOL",
           "name": "package_clause"
         },
@@ -6776,10 +6764,6 @@
           "name": "_automatic_semicolon"
         }
       ]
-    },
-    "_byte_order_mark": {
-      "type": "STRING",
-      "value": "﻿"
     },
     "comment": {
       "type": "TOKEN",

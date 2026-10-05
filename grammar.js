@@ -314,7 +314,6 @@ export default grammar({
 
   rules: {
     source_file: ($) => seq(
-      optional($._byte_order_mark),
       $.package_clause,
       $._terminator,
       repeat(seq($.import_declaration, $._terminator)),
@@ -810,8 +809,6 @@ export default grammar({
     identifier: (_) => /[_\p{L}][_\p{L}\p{Nd}]*/,
 
     _terminator: ($) => choice(';', $._automatic_semicolon),
-
-    _byte_order_mark: (_) => '\uFEFF',
 
     comment: (_) => token(choice(
       seq('//', /[^\n]*/),

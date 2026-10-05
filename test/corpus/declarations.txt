@@ -512,3 +512,14 @@ type D [P * C]int
           left: (identifier)
           right: (identifier))
         element: (type_identifier)))))
+
+================================================================================
+A byte order mark at the start of the file
+================================================================================
+﻿package p
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier)))
