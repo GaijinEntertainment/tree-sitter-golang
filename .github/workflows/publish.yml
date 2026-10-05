@@ -4,20 +4,98 @@ on:
   push:
     tags: ["v*"]
 
+concurrency:
+  group: ${{github.workflow}}-${{github.ref}}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
+env:
+  PACKAGE: tree-sitter-golang
+  TREE_SITTER_CLI_VERSION: v0.27.0
+  TREE_SITTER_CLI_SHA256: 20a1f39ec1c45f2211492dcb8881c802b643b554bb196869a29ac3778277fa77
+
 jobs:
+  version:
+    name: Check the version
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{steps.version.outputs.version}}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Compare the tag with the grammar version
+        id: version
+        run: |
+          version=$(jq -r .metadata.version tree-sitter.json)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match version $version in tree-sitter.json"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  wasm:
+    name: Build the Wasm binary
+    needs: version
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Download the tree-sitter CLI
+        run: |
+          curl -fsSL -o /tmp/tree-sitter.gz \
+            "https://github.com/tree-sitter/tree-sitter/releases/download/$TREE_SITTER_CLI_VERSION/tree-sitter-linux-x64.gz"
+          echo "$TREE_SITTER_CLI_SHA256  /tmp/tree-sitter.gz" | sha256sum --check
+          gunzip /tmp/tree-sitter.gz
+          chmod +x /tmp/tree-sitter
+      - name: Build the Wasm binary
+        run: /tmp/tree-sitter build --wasm
+      - name: Upload the Wasm binary
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: wasm
+          path: "*.wasm"
+          retention-days: 2
+
   github:
-    uses: tree-sitter/workflows/.github/workflows/release.yml@10c66d66e558b37df92e2a8ec5321218a6547b04
+    name: Create the GitHub release
+    needs: [version, wasm]
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
       id-token: write
       attestations: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Download the Wasm binary
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: wasm
+      - name: Create the source tarball
+        run: git archive --format=tar.gz --prefix="$PACKAGE/" -o "$PACKAGE.tar.gz" HEAD
+      - name: Attest the release artifacts
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            *.wasm
+            ${{env.PACKAGE}}.tar.gz
+      - name: Create the GitHub release
+        run: gh release create "$GITHUB_REF_NAME" ./*.wasm "$PACKAGE.tar.gz" --generate-notes
+        env:
+          GH_TOKEN: ${{github.token}}
 
   crates:
-    name: Publish Rust package
-    runs-on: ubuntu-latest
+    name: Publish the Rust package
+    needs: version
+    runs-on: ubuntu-24.04
     environment:
       name: crates
       url: https://crates.io/crates/tree-sitter-golang
@@ -26,33 +104,49 @@ jobs:
       id-token: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check whether crates.io has the version
+        id: published
+        run: |
+          status=$(curl -s -o /dev/null -w '%{http_code}' -A "$PACKAGE publish workflow ($GITHUB_SERVER_URL/$GITHUB_REPOSITORY)" \
+            "https://crates.io/api/v1/crates/$PACKAGE/$VERSION")
+          echo "exists=$([ "$status" = 200 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+        env:
+          VERSION: ${{needs.version.outputs.version}}
       - name: Set up Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+        if: steps.published.outputs.exists == 'false'
+        run: rustup toolchain install stable --profile minimal --no-self-update && rustup default stable
       - name: Authenticate with crates.io
+        if: steps.published.outputs.exists == 'false'
         id: auth
-        uses: rust-lang/crates-io-auth-action@v1
+        uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
       - name: Publish to crates.io
+        if: steps.published.outputs.exists == 'false'
         run: cargo publish
         env:
           CARGO_REGISTRY_TOKEN: ${{steps.auth.outputs.token}}
 
   python-sdist:
-    name: Build Python source distribution
-    runs-on: ubuntu-latest
+    name: Build the Python source distribution
+    needs: version
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Set up Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
       - name: Install build
         run: pip install --upgrade build
-      - name: Build source distribution
+      - name: Build the source distribution
         run: python -m build --sdist
-      - name: Upload source distribution
-        uses: actions/upload-artifact@v7
+      - name: Upload the source distribution
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: dist-sdist
           path: dist/*.tar.gz
@@ -60,6 +154,7 @@ jobs:
 
   python-wheels:
     name: Build Python wheels on ${{matrix.os}}
+    needs: version
     runs-on: ${{matrix.os}}
     strategy:
       matrix:
@@ -72,35 +167,39 @@ jobs:
           - macos-15-intel
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Build wheels
-        uses: pypa/cibuildwheel@v4.1
+        uses: pypa/cibuildwheel@adba99c781d3746d38b3a09b1cf797965bcb7fe6 # v4.3.0
         with:
           output-dir: dist
         env:
           CIBW_ARCHS: native
-      - name: Upload wheels
-        uses: actions/upload-artifact@v7
+      - name: Upload the wheels
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: dist-wheels-${{matrix.os}}
           path: dist/*.whl
           retention-days: 2
 
   pypi:
-    name: Publish Python package
+    name: Publish the Python package
     needs: [python-sdist, python-wheels]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment:
       name: pypi
       url: https://pypi.org/project/tree-sitter-golang/
     permissions:
       id-token: write
     steps:
-      - name: Download distributions
-        uses: actions/download-artifact@v8
+      - name: Download the distributions
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: dist
           pattern: dist-*
           merge-multiple: true
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        with:
+          skip-existing: true
