@@ -17,7 +17,7 @@
       "email": "xog3@yandex.ru"
     }
   ],
-  "main": "bindings/node",
+  "main": "bindings/node/index.js",
   "types": "bindings/node",
   "keywords": [
     "incremental",
