@@ -3,6 +3,7 @@ name: Publish packages
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
 
 concurrency:
   group: ${{github.workflow}}-${{github.ref}}
@@ -27,26 +28,30 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Compare the tag with the grammar version
+      - name: Read the grammar version
         id: version
+        run: echo "version=$(jq -r .metadata.version tree-sitter.json)" >> "$GITHUB_OUTPUT"
+      - name: Compare the tag with the grammar version
+        if: github.event_name == 'push'
         run: |
-          version=$(jq -r .metadata.version tree-sitter.json)
-          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
-            echo "::error::tag $GITHUB_REF_NAME does not match version $version in tree-sitter.json"
+          if [ "v$VERSION" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match version $VERSION in tree-sitter.json"
             exit 1
           fi
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-      - name: Compare the tag with the Go module path
+        env:
+          VERSION: ${{steps.version.outputs.version}}
+      - name: Compare the grammar version with the Go module path
         run: |
-          major=${GITHUB_REF_NAME#v}
-          major=${major%%.*}
+          major=${VERSION%%.*}
           expected=github.com/$GITHUB_REPOSITORY
           [ "$major" -lt 2 ] || expected=$expected/v$major
           module=$(sed -n 's/^module //p' go.mod)
           if [ "$module" != "$expected" ]; then
-            echo "::error file=go.mod::module path $module must be $expected for the tag $GITHUB_REF_NAME"
+            echo "::error file=go.mod::module path $module must be $expected for version $VERSION"
             exit 1
           fi
+        env:
+          VERSION: ${{steps.version.outputs.version}}
 
   wasm:
     name: Build the Wasm binary
@@ -75,6 +80,7 @@ jobs:
 
   github:
     name: Create the GitHub release
+    if: github.event_name == 'push'
     needs: [version, wasm]
     runs-on: ubuntu-24.04
     permissions:
@@ -105,6 +111,7 @@ jobs:
 
   crates:
     name: Publish the Rust package
+    if: github.event_name == 'push'
     needs: version
     runs-on: ubuntu-24.04
     environment:
@@ -196,6 +203,7 @@ jobs:
 
   pypi:
     name: Publish the Python package
+    if: github.event_name == 'push'
     needs: [python-sdist, python-wheels]
     runs-on: ubuntu-24.04
     environment:
