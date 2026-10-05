@@ -5,10 +5,12 @@ on:
     branches: [main]
     paths:
       - .github/workflows/fuzz.yml
+      - src/grammar.json
       - src/scanner.c
   pull_request:
     paths:
       - .github/workflows/fuzz.yml
+      - src/grammar.json
       - src/scanner.c
 
 permissions:
