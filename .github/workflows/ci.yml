@@ -78,9 +78,9 @@ jobs:
     needs: [test, lint, fuzz]
     runs-on: ubuntu-latest
     steps:
-      - name: Check that no job failed
+      - name: Check that each job passed
         run: |
           echo "$RESULTS"
-          [[ "$RESULTS" != *'"failure"'* && "$RESULTS" != *'"cancelled"'* ]]
+          jq --exit-status 'all(. == "success")' <<< "$RESULTS"
         env:
           RESULTS: ${{toJSON(needs.*.result)}}
