@@ -9,6 +9,9 @@ on:
     paths:
       - src/scanner.c
 
+permissions:
+  contents: read
+
 jobs:
   fuzz:
     runs-on: ubuntu-latest
