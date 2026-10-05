@@ -42,6 +42,13 @@ jobs:
         uses: tree-sitter/parse-action@f44ffa94f802024f27e821a72e6f2f3efc5dd521 # v4
         with:
           files: examples/*
+      # `tree-sitter fuzz` ends with status 0 when a test fails, so the step reads its output.
+      - name: Compare incremental parses with fresh parses
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          tree-sitter fuzz --iterations 100 2>&1 | tee fuzz.log
+          ! grep --quiet 'failed fuzzing' fuzz.log
 
   lint:
     name: Lint
