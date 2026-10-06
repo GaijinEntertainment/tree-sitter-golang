@@ -7471,17 +7471,6 @@
         }
       ]
     },
-    "_raw_string_content": {
-      "type": "IMMEDIATE_TOKEN",
-      "content": {
-        "type": "PREC",
-        "value": 1,
-        "content": {
-          "type": "PATTERN",
-          "value": "[^`]+"
-        }
-      }
-    },
     "interpreted_string_literal": {
       "type": "SEQ",
       "members": [
@@ -7519,17 +7508,6 @@
         }
       ]
     },
-    "_interpreted_string_content": {
-      "type": "IMMEDIATE_TOKEN",
-      "content": {
-        "type": "PREC",
-        "value": 1,
-        "content": {
-          "type": "PATTERN",
-          "value": "[^\"\\\\\\n]+"
-        }
-      }
-    },
     "escape_sequence": {
       "type": "IMMEDIATE_TOKEN",
       "content": {
@@ -7541,7 +7519,7 @@
       "type": "TOKEN",
       "content": {
         "type": "PATTERN",
-        "value": "'([^'\\\\\\n]|\\\\([abfnrtv\\\\']|[0-3][0-7]{2}|x[0-9a-fA-F]{2}|u([0-9a-cA-CeEfF][0-9a-fA-F]{3}|[dD][0-7][0-9a-fA-F]{2})|U(0000([0-9a-cA-CeEfF][0-9a-fA-F]{3}|[dD][0-7][0-9a-fA-F]{2})|000[1-9a-fA-F][0-9a-fA-F]{4}|0010[0-9a-fA-F]{4})))'"
+        "value": "'([^'\\\\\\n\\uFEFF]|\\\\([abfnrtv\\\\']|[0-3][0-7]{2}|x[0-9a-fA-F]{2}|u([0-9a-cA-CeEfF][0-9a-fA-F]{3}|[dD][0-7][0-9a-fA-F]{2})|U(0000([0-9a-cA-CeEfF][0-9a-fA-F]{3}|[dD][0-7][0-9a-fA-F]{2})|000[1-9a-fA-F][0-9a-fA-F]{4}|0010[0-9a-fA-F]{4})))'"
       }
     },
     "int_literal": {
@@ -7603,7 +7581,7 @@
               },
               {
                 "type": "PATTERN",
-                "value": "[^\\n]*"
+                "value": "([^\\r\\n]|\\r+[^\\r\\n])*"
               }
             ]
           },
@@ -7730,6 +7708,18 @@
     {
       "type": "SYMBOL",
       "name": "_never_returned"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "comment"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_interpreted_string_content"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_raw_string_content"
     },
     {
       "type": "SYMBOL",
