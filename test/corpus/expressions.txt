@@ -551,6 +551,44 @@ func f() {
           operand: (int_literal))))))
 
 ================================================================================
+A tilde operand after the first token of a statement
+================================================================================
+
+package p
+
+func f() {
+	x = ~y
+	if ~x {
+	}
+	for ~x {
+	}
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameters)
+    body: (block
+      (assignment
+        left: (expression_list
+          (identifier))
+        right: (expression_list
+          (unary_expression
+            operand: (identifier))))
+      (if_statement
+        condition: (unary_expression
+          operand: (identifier))
+        body: (block))
+      (for_statement
+        condition: (unary_expression
+          operand: (identifier))
+        body: (block)))))
+
+================================================================================
 The new builtin with an expression operand
 ================================================================================
 

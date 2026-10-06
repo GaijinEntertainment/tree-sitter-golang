@@ -5180,8 +5180,25 @@
       ]
     },
     "expression_statement": {
-      "type": "SYMBOL",
-      "name": "_expression"
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_statement_start"
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_expression"
+        }
+      ]
     },
     "send_statement": {
       "type": "SEQ",
@@ -7295,11 +7312,15 @@
     },
     {
       "type": "SYMBOL",
+      "name": "_statement_start"
+    },
+    {
+      "type": "SYMBOL",
       "name": "_never_returned"
     },
     {
       "type": "SYMBOL",
-      "name": "_rejected_line_break"
+      "name": "_rejected_token"
     },
     {
       "type": "SYMBOL",
