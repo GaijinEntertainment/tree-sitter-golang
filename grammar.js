@@ -620,6 +620,15 @@ export default grammar({
       ']',
     )),
 
+    // constraint: without a comma the parsers split the expression only when a term is a type element
+    // (`isTypeElem`); the scanner reads the bracket text and gives `_type_parameters_follow` for that case
+    _type_parameters_with_one_expression: ($) => seq(
+      '[',
+      alias($.type_parameter_declaration_with_expression, $.type_parameter_declaration),
+      $._element_end,
+      ']',
+    ),
+
     type_parameter_declaration_with_expression: ($) => prec.dynamic(PREC.EXPRESSION_AS_CONSTRAINT, seq(
       field('name', typeIdentifier($)),
       field('constraint', alias($._expression_constraint, $.type_elem)),
@@ -1181,9 +1190,10 @@ function wholeToken(tokens) {
  */
 function typeParametersAfterName($) {
   const withExpression = alias($._type_parameters_with_expression, $.type_parameters);
+  const withOneExpression = alias($._type_parameters_with_one_expression, $.type_parameters);
   return choice(
     seq($._same_line, optional(choice(typeParametersOnTheLine($), typeParametersOnTheLine($, withExpression)))),
-    seq($._type_parameters_follow, typeParametersOnTheLine($)),
+    seq($._type_parameters_follow, choice(typeParametersOnTheLine($), typeParametersOnTheLine($, withOneExpression))),
     $._no_type_parameters,
   );
 }

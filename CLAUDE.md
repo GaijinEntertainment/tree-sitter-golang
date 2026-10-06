@@ -13,14 +13,12 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
   `go/ast` tree. An input that either parser rejects produces ERROR wherever the grammar can see the defect.
 - The grammar accepts what both parsers accept and only the type checker rejects: any expression as a statement, a
   type literal or `~x` as an operand, `[...]T` outside a composite literal, a non-name left of `:=`, `.(type)` outside
-  a type switch, an expression in a type switch case, a selector expression as a composite literal type, an expression
-  as the first type argument after one name, and a constant with a type and no value.
-- The grammar differs from the parsers in one form, and no valid program holds it: a first constraint of a type
-  declaration that has an expression as a term, a type element as another term, and no comma after it
-  (`type T[P *C | (~D)] int`). Both parsers read that bracket as an expression and take a type parameter list when
-  `isTypeElem` finds a type element in a term. The grammar reads an array length there, and gives ERROR where no array
-  type can stand (`type T[P *C | (~D)] = int`). The fix needs `isTypeElem` over every expression: a third copy of the
-  binary and parenthesized expression rules, or a type parser in the scanner.
+  a type switch, an expression in a type switch case, a selector expression or an index expression as a composite
+  literal type, an expression as the first type argument after one name, an expression as a term of the first
+  constraint of a type declaration, and a constant with a type and no value.
+- Where both parsers accept a text and build different trees, the tree follows `go/parser`. `isTypeElem` of the
+  compiler also looks under a unary operator, so the compiler reads type parameters in `type T[P *-[]int] int`, and
+  `go/parser` reads an array length.
 
 ## Where things live
 
@@ -115,8 +113,12 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
   to keep the reduction. An alias that every use of a rule has does not keep it.
 - Both parsers settle the `[` after the name of a type declaration before they read the rest of the declaration, so
   `type A[P *C] = T` is an array type with a syntax error. Dynamic precedence cannot give that: only one parse stays
-  valid. The scanner reads the bracket text and gives `_type_parameters_follow` or `_no_type_parameters` where the
-  text settles the kind, and `_same_line` where a type literal or a comma leaves it to the two parses.
+  valid. The scanner reads the bracket text as `extractName` and `isTypeElem` of `go/parser` do, and gives
+  `_type_parameters_follow` or `_no_type_parameters`. It gives `_same_line` where a comma outside parentheses leaves
+  the text to the two parses, and for a text that it cannot read.
+- An expression is a term of a first constraint only in `type_parameter_declaration_with_expression`. After `_same_line`
+  that rule needs the comma; after `_type_parameters_follow` the scanner has found the type element that the parsers
+  need without it.
 - In an `index_expression` with more than one `index`, the first is an expression and the others are types, as both
   parsers read them. `queries/highlights.scm` captures an identifier in that first position as a type.
 - Every keyword is in `KEYWORDS`, the reserved word set; an identifier never matches one.

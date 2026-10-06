@@ -642,6 +642,94 @@ type B[P (f(x)) | 1 * 2, Q any] = int
       type: (type_identifier))))
 
 ================================================================================
+A type element makes a constraint of an expression without a comma, and a composite literal does not
+================================================================================
+
+package p
+
+type A[P *C | (~D)] int
+type B[P *f() | []int] = int
+type C[P (g(x)) | struct{}] int
+type D[P *f() | []int{}] int
+type E[P *f() | -[]int] int
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (type_declaration
+    (type_definition
+      name: (type_identifier)
+      type_parameters: (type_parameters
+        (type_parameter_declaration
+          name: (type_identifier)
+          constraint: (type_elem
+            (unary_expression
+              operand: (identifier))
+            (parenthesized_expression
+              (unary_expression
+                operand: (identifier))))))
+      type: (type_identifier)))
+  (type_declaration
+    (alias_declaration
+      name: (type_identifier)
+      type_parameters: (type_parameters
+        (type_parameter_declaration
+          name: (type_identifier)
+          constraint: (type_elem
+            (unary_expression
+              operand: (call_expression
+                function: (identifier)
+                arguments: (arguments)))
+            (slice_type
+              element: (type_identifier)))))
+      type: (type_identifier)))
+  (type_declaration
+    (type_definition
+      name: (type_identifier)
+      type_parameters: (type_parameters
+        (type_parameter_declaration
+          name: (type_identifier)
+          constraint: (type_elem
+            (parenthesized_expression
+              (call_expression
+                function: (identifier)
+                arguments: (arguments
+                  (identifier))))
+            (struct_type))))
+      type: (type_identifier)))
+  (type_declaration
+    (type_definition
+      name: (type_identifier)
+      type: (array_type
+        length: (binary_expression
+          left: (binary_expression
+            left: (identifier)
+            right: (call_expression
+              function: (identifier)
+              arguments: (arguments)))
+          right: (composite_literal
+            type: (slice_type
+              element: (type_identifier))
+            value: (literal_value)))
+        element: (type_identifier))))
+  (type_declaration
+    (type_definition
+      name: (type_identifier)
+      type: (array_type
+        length: (binary_expression
+          left: (binary_expression
+            left: (identifier)
+            right: (call_expression
+              function: (identifier)
+              arguments: (arguments)))
+          right: (unary_expression
+            operand: (slice_type
+              element: (type_identifier))))
+        element: (type_identifier)))))
+
+================================================================================
 A pointer to a channel, function or interface type is a constraint
 ================================================================================
 
