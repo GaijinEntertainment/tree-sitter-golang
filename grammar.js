@@ -567,11 +567,9 @@ export default grammar({
 
     _block_statement_list: ($) => statementList($, [$._statement, alias($.empty_labeled_statement, $.labeled_statement)]),
 
-    _statement_list: ($) => statementList($, [$._statement]),
-
-    _label_ended_statement_list: ($) => seq(
+    _unterminated_statement_list: ($) => seq(
       repeat(statementItem($)),
-      alias($.empty_labeled_statement, $.labeled_statement),
+      choice($._statement, alias($.empty_labeled_statement, $.labeled_statement)),
     ),
 
     _statement: ($) => choice(
@@ -644,7 +642,7 @@ export default grammar({
       $._case_values,
       $._colon_on_same_line,
       ':',
-      optional($._statement_list),
+      repeat(statementItem($)),
     ),
 
     final_expression_case_clause: ($) => seq(
@@ -652,16 +650,16 @@ export default grammar({
       $._case_values,
       $._colon_on_same_line,
       ':',
-      $._label_ended_statement_list,
+      $._unterminated_statement_list,
     ),
 
     _case_values: ($) => field('value', alias($._case_value_list, $.expression_list)),
 
     _case_value_list: ($) => elementList($, $._expression),
 
-    default_clause: ($) => seq('default', ':', optional($._statement_list)),
+    default_clause: ($) => seq('default', ':', repeat(statementItem($))),
 
-    final_default_clause: ($) => seq('default', ':', $._label_ended_statement_list),
+    final_default_clause: ($) => seq('default', ':', $._unterminated_statement_list),
 
     type_switch_statement: ($) => seq(
       'switch',
@@ -681,7 +679,7 @@ export default grammar({
       $._type_case_list,
       $._colon_on_same_line,
       ':',
-      optional($._statement_list),
+      repeat(statementItem($)),
     ),
 
     final_type_case_clause: ($) => seq(
@@ -689,7 +687,7 @@ export default grammar({
       $._type_case_list,
       $._colon_on_same_line,
       ':',
-      $._label_ended_statement_list,
+      $._unterminated_statement_list,
     ),
 
     _type_case_list: ($) => elementList($, field('type', choice(prec.dynamic(1, $._type), $._expression))),
@@ -701,7 +699,7 @@ export default grammar({
       $._communication,
       $._colon_on_same_line,
       ':',
-      optional($._statement_list),
+      repeat(statementItem($)),
     ),
 
     final_communication_clause: ($) => seq(
@@ -709,7 +707,7 @@ export default grammar({
       $._communication,
       $._colon_on_same_line,
       ':',
-      $._label_ended_statement_list,
+      $._unterminated_statement_list,
     ),
 
     _communication: ($) => field('communication', choice($.send_statement, $.receive_statement)),
@@ -869,7 +867,8 @@ function typeElementInExpression(rule) {
   return prec.dynamic(PREC.TYPE_ELEMENT_IN_EXPRESSION, rule);
 }
 
-// constraint: a label without a statement may end only the last clause, before the closing brace
+// constraint: Go omits the semicolon only before a closing brace, so a statement without a terminator and a label
+// without a statement may end only the last clause
 /**
  * @param {GrammarSymbols<string>} $
  * @param {RuleOrLiteral} clause

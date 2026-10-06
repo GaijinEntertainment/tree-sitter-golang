@@ -391,6 +391,70 @@ func f() { const c = 1; const ( d = 2; e ) }
           name: (identifier))))))
 
 ================================================================================
+Only the last clause ends without a terminator
+================================================================================
+
+package p
+
+func f() {
+	switch { case a: g(); case b: h() }
+	switch x.(type) { case int: g(); default: h() }
+	select { case <-c: g(); default: h() }
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameters)
+    body: (block
+      (expression_switch_statement
+        (expression_case_clause
+          value: (expression_list
+            (identifier))
+          (expression_statement
+            (call_expression
+              function: (identifier)
+              arguments: (arguments))))
+        (expression_case_clause
+          value: (expression_list
+            (identifier))
+          (expression_statement
+            (call_expression
+              function: (identifier)
+              arguments: (arguments)))))
+      (type_switch_statement
+        operand: (identifier)
+        (type_case_clause
+          type: (type_identifier)
+          (expression_statement
+            (call_expression
+              function: (identifier)
+              arguments: (arguments))))
+        (type_case_clause
+          (expression_statement
+            (call_expression
+              function: (identifier)
+              arguments: (arguments)))))
+      (select_statement
+        (communication_clause
+          communication: (receive_statement
+            right: (unary_expression
+              operand: (identifier)))
+          (expression_statement
+            (call_expression
+              function: (identifier)
+              arguments: (arguments))))
+        (communication_clause
+          (expression_statement
+            (call_expression
+              function: (identifier)
+              arguments: (arguments))))))))
+
+================================================================================
 A type switch guard before a general comment with a newline is the initializer
 ================================================================================
 
