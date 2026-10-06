@@ -760,6 +760,10 @@
             "named": true
           },
           {
+            "type": "selector_expression",
+            "named": true
+          },
+          {
             "type": "slice_type",
             "named": true
           },

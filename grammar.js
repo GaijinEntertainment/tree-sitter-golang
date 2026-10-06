@@ -93,6 +93,18 @@ function spine($, prefix, base) {
   return alias(rule, $[base]);
 }
 
+// constraint: a name before `.` starts a selector, a type assertion, or a qualified identifier, and the parser must
+// not reduce the name before it sees the token after the `.`; a rule that takes an operand before `.` names the
+// identifier itself
+/**
+ * @param {GrammarSymbols<string>} $
+ * @param {string} prefix
+ * @returns {ChoiceRule}
+ */
+function operandBeforeDot($, prefix) {
+  return choice($.identifier, $[spineName(prefix, '_operand_other_than_name')]);
+}
+
 // constraint: between `if`, `for` or `switch` and the block, Go reads the `{` after a named type as the block
 /**
  * @param {string} prefix
@@ -107,7 +119,10 @@ function expressionSpine(prefix) {
       $.map_type,
       $.struct_type,
     ];
-    return prefix === '' ? [...types, $._type_name, $.generic_type] : types;
+    if (prefix !== '') {
+      return types;
+    }
+    return [...types, $._type_name, $.generic_type, alias($.nested_selector_expression, $.selector_expression)];
   };
 
   return {
@@ -165,9 +180,13 @@ function expressionSpine(prefix) {
     ),
 
     [spineName(prefix, '_operand_expression')]: ($) => choice(
+      $.identifier,
+      spine($, prefix, '_operand_other_than_name'),
+    ),
+
+    [spineName(prefix, '_operand_other_than_name')]: ($) => choice(
       typeElementInExpression($.struct_type),
       typeElementInExpression($.interface_type),
-      $.identifier,
       $.int_literal,
       $.float_literal,
       $.imaginary_literal,
@@ -178,6 +197,7 @@ function expressionSpine(prefix) {
       $.function_literal,
       $.parenthesized_expression,
       spine($, prefix, 'selector_expression'),
+      alias($[spineName(prefix, 'nested_selector_expression')], $.selector_expression),
       spine($, prefix, 'index_expression'),
       spine($, prefix, 'slice_expression'),
       spine($, prefix, 'type_assertion_expression'),
@@ -194,9 +214,17 @@ function expressionSpine(prefix) {
     // exponent, and not a selector on `0x1`; the second form never completes, so that text gives ERROR
     [spineName(prefix, 'selector_expression')]: ($) => prec(PREC.PRIMARY, seq(
       choice(
-        seq(field('operand', spine($, prefix, '_operand_expression')), '.'),
+        seq(field('operand', $.identifier), '.'),
         seq($._prefixed_int_with_radix_point, $._never_returned, field('operand', $.int_literal)),
       ),
+      field('field', alias($.identifier, $.field_identifier)),
+    )),
+
+    // constraint: both parsers take a selector expression as the type of a composite literal; a selector on a name
+    // is a qualified identifier there, so the selector on another operand has its own rule
+    [spineName(prefix, 'nested_selector_expression')]: ($) => prec(PREC.PRIMARY, seq(
+      field('operand', spine($, prefix, '_operand_other_than_name')),
+      '.',
       field('field', alias($.identifier, $.field_identifier)),
     )),
 
@@ -234,7 +262,7 @@ function expressionSpine(prefix) {
 
     [spineName(prefix, 'type_assertion_expression')]: ($) => choice(
       prec(PREC.PRIMARY, seq(
-        field('operand', spine($, prefix, '_operand_expression')),
+        field('operand', operandBeforeDot($, prefix)),
         '.',
         '(',
         field('type', $._type),
@@ -242,7 +270,7 @@ function expressionSpine(prefix) {
         ')',
       )),
       prec(PREC.TYPE_GUARD_OUTSIDE_SWITCH, seq(
-        field('operand', spine($, prefix, '_operand_expression')),
+        field('operand', operandBeforeDot($, prefix)),
         '.',
         '(',
         'type',
@@ -338,14 +366,14 @@ export default grammar({
 
   conflicts: ($) => [
     [$.parameter_declaration, $._type_name],
-    [$.qualified_identifier, $._operand_expression],
+    [$.qualified_identifier, $.selector_expression],
     [$._type_name, $._operand_expression],
     [$.type_parameter_declaration, $._operand_expression],
     [$.type_parameter_declaration, $._type_name, $._operand_expression],
     [$.type_switch_statement, $._header_operand_expression],
     [$._simple_type, $._primary_expression],
     [$._simple_type_after_name, $._primary_expression],
-    [$._simple_type_after_name, $._operand_expression],
+    [$._simple_type_after_name, $._operand_other_than_name],
     [$.channel_type, $.receive_channel_type],
     [$.channel_type, $.receive_channel_type_operand],
     [$.channel_type, $.receive_channel_type, $.receive_channel_type_operand],
@@ -558,11 +586,11 @@ export default grammar({
 
     parenthesized_type: ($) => seq('(', $._type, $._element_end, ')'),
 
-    qualified_identifier: ($) => seq(
+    qualified_identifier: ($) => prec(PREC.PRIMARY, seq(
       field('package', packageIdentifier($)),
       '.',
       field('name', typeIdentifier($)),
-    ),
+    )),
 
     generic_type: ($) => seq(field('type', $._type_name), field('type_arguments', $.type_arguments)),
 
@@ -773,7 +801,7 @@ export default grammar({
       'switch',
       optional($._header_initializer),
       optional(seq(field('name', $.identifier), ':=')),
-      field('operand', $._header_operand_expression),
+      field('operand', operandBeforeDot($, 'header_')),
       '.',
       '(',
       'type',
