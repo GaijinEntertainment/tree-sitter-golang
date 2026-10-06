@@ -105,9 +105,9 @@ static bool directive_is_valid(const LineDirective *directive) {
 }
 
 // constraint: a line comment ends before the line end and before one carriage return there, which go/scanner drops;
-// it is a line directive only when it starts the line
+// it is a line directive only when it starts the line, and a byte order mark before it moves it off the line start
 // The lexer stands on the second `/`. Returns false for a comment that Go rejects.
-static bool scan_line_comment(TSLexer *lexer) {
+static bool scan_line_comment(TSLexer *lexer, bool follows_byte_order_mark) {
   advance(lexer);
   LineDirective directive = {0};
   bool starts_line = false;
@@ -131,7 +131,7 @@ static bool scan_line_comment(TSLexer *lexer) {
     bool prefix_was_incomplete = directive.matched_prefix_length < DIRECTIVE_PREFIX_LENGTH;
     read_directive_character(&directive, c);
     if (prefix_was_incomplete && directive.matched_prefix_length == DIRECTIVE_PREFIX_LENGTH) {
-      starts_line = lexer->get_column(lexer) == 2 + DIRECTIVE_PREFIX_LENGTH;
+      starts_line = !follows_byte_order_mark && lexer->get_column(lexer) == 2 + DIRECTIVE_PREFIX_LENGTH;
     }
   }
   if (!carriage_return_is_pending) {
@@ -516,6 +516,9 @@ bool tree_sitter_golang_external_scanner_scan(void *payload, TSLexer *lexer, con
     return scan_string_content(lexer, valid_symbols[RAW_STRING_CONTENT]);
   }
   lexer->mark_end(lexer);
+  // constraint: the lexer skips a byte order mark at the start of the text and counts no column for it, so a token at
+  // column 0 that the scan reaches without white space, and not at the start of the text, follows the mark
+  bool follows_token_or_mark = !lexer->is_at_included_range_start(lexer) && !is_white_space(lexer->lookahead);
   bool line_ended = false;
   while (!lexer->eof(lexer) && is_white_space(lexer->lookahead)) {
     line_ended = line_ended || lexer->lookahead == '\n';
@@ -531,7 +534,7 @@ bool tree_sitter_golang_external_scanner_scan(void *payload, TSLexer *lexer, con
       if (take_line_end(lexer, valid_symbols)) {
         return true;
       }
-      return give(lexer, scan_line_comment(lexer) ? COMMENT : REJECTED_TOKEN);
+      return give(lexer, scan_line_comment(lexer, follows_token_or_mark) ? COMMENT : REJECTED_TOKEN);
     }
     if (lexer->lookahead == '*') {
       bool crossed_newline = false;
