@@ -250,6 +250,66 @@ var d = make(<-chan int)
               element: (type_identifier))))))))
 
 ================================================================================
+An expression as the first type argument after one name
+================================================================================
+
+package p
+
+type S struct {
+	a [8]
+	byte
+	b[1, int]
+}
+
+func f(a [n+1]) {}
+
+func (T[8]) m() {}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (type_declaration
+    (type_definition
+      name: (type_identifier)
+      type: (struct_type
+        (field_declaration
+          type: (generic_type
+            type: (type_identifier)
+            type_arguments: (type_arguments
+              (int_literal))))
+        (field_declaration
+          type: (type_identifier))
+        (field_declaration
+          type: (generic_type
+            type: (type_identifier)
+            type_arguments: (type_arguments
+              (int_literal)
+              (type_identifier)))))))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameters
+      (parameter_declaration
+        type: (generic_type
+          type: (type_identifier)
+          type_arguments: (type_arguments
+            (binary_expression
+              left: (identifier)
+              right: (int_literal))))))
+    body: (block))
+  (method_declaration
+    receiver: (parameters
+      (parameter_declaration
+        type: (generic_type
+          type: (type_identifier)
+          type_arguments: (type_arguments
+            (int_literal)))))
+    name: (field_identifier)
+    parameters: (parameters)
+    body: (block)))
+
+================================================================================
 Qualified, generic and parenthesized types
 ================================================================================
 

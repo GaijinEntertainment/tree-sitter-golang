@@ -3099,6 +3099,10 @@
       "required": true,
       "types": [
         {
+          "type": "_expression",
+          "named": true
+        },
+        {
           "type": "_type",
           "named": true
         }

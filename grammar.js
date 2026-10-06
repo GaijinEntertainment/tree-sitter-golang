@@ -10,6 +10,7 @@
 
 const PREC = {
   RECEIVE_OPERATION: -3,
+  EXPRESSION_AS_TYPE_ARGUMENT: -3,
   TYPE_ELEMENT_IN_EXPRESSION: -2,
   TYPE_PARAMETERS_OVER_ARRAY_LENGTH: -1,
   RECEIVE_CHANNEL_TYPE: -1,
@@ -337,7 +338,6 @@ export default grammar({
 
   conflicts: ($) => [
     [$.parameter_declaration, $._type_name],
-    [$._type_name, $.field_declaration],
     [$.qualified_identifier, $._operand_expression],
     [$._type_name, $._operand_expression],
     [$.type_parameter_declaration, $._operand_expression],
@@ -349,7 +349,10 @@ export default grammar({
     [$.channel_type, $.receive_channel_type],
     [$.channel_type, $.receive_channel_type_operand],
     [$.channel_type, $.receive_channel_type, $.receive_channel_type_operand],
-    [$.receiver_parameter_declaration, $._type_name],
+    [$._type_name, $.generic_type_with_expression],
+    [$.receiver_parameter_declaration, $._type_name, $.generic_type_with_expression],
+    [$.parameter_declaration, $._type_name, $.generic_type_with_expression],
+    [$._type_name, $.field_declaration, $.generic_type_with_expression],
     [$._range_left, $.header_expression_list],
   ],
 
@@ -505,7 +508,10 @@ export default grammar({
       field('type', $._type_after_name),
     ),
 
-    unnamed_parameter_declaration: ($) => field('type', $._type),
+    unnamed_parameter_declaration: ($) => field('type', choice(
+      $._type,
+      alias($.generic_type_with_expression, $.generic_type),
+    )),
 
     variadic_parameter_declaration: ($) => seq(field('name', $.identifier), '...', field('type', $._type)),
 
@@ -561,6 +567,22 @@ export default grammar({
     generic_type: ($) => seq(field('type', $._type_name), field('type_arguments', $.type_arguments)),
 
     type_arguments: ($) => seq('[', closedElementList($, $._type), ']'),
+
+    // constraint: after one name in a field or a parameter, both parsers read `[` as an array length or as type
+    // arguments, and settle that after the `]`; the first type argument is then any expression
+    generic_type_with_expression: ($) => prec.dynamic(PREC.EXPRESSION_AS_TYPE_ARGUMENT, seq(
+      field('type', typeIdentifier($)),
+      field('type_arguments', alias($._type_arguments_with_expression, $.type_arguments)),
+    )),
+
+    _type_arguments_with_expression: ($) => seq(
+      '[',
+      $._expression,
+      repeat(seq($._element_end, ',', $._type)),
+      $._element_end,
+      optional(','),
+      ']',
+    ),
 
     pointer_type: ($) => prec(PREC.UNARY, seq('*', $._type)),
 
@@ -629,6 +651,7 @@ export default grammar({
     _embedded_type: ($) => choice(
       $._type_name,
       $.generic_type,
+      alias($.generic_type_with_expression, $.generic_type),
       alias($._embedded_pointer_type, $.pointer_type),
     ),
 
