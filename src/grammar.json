@@ -2194,17 +2194,29 @@
         ]
       }
     },
-    "_receive_channel_type_operand": {
+    "receive_channel_type_operand": {
       "type": "PREC_DYNAMIC",
-      "value": -2,
+      "value": -3,
       "content": {
-        "type": "ALIAS",
-        "content": {
-          "type": "SYMBOL",
-          "name": "receive_channel_type"
-        },
-        "named": true,
-        "value": "channel_type"
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "STRING",
+            "value": "<-"
+          },
+          {
+            "type": "STRING",
+            "value": "chan"
+          },
+          {
+            "type": "FIELD",
+            "name": "element",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_type"
+            }
+          }
+        ]
       }
     },
     "function_type": {
@@ -4322,8 +4334,13 @@
           "name": "_primary_expression"
         },
         {
-          "type": "SYMBOL",
-          "name": "_receive_channel_type_operand"
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "receive_channel_type_operand"
+          },
+          "named": true,
+          "value": "channel_type"
         }
       ]
     },
@@ -4823,48 +4840,78 @@
           "type": "PREC_DYNAMIC",
           "value": -2,
           "content": {
-            "type": "SYMBOL",
-            "name": "array_type"
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "array_type"
+            },
+            "named": true,
+            "value": "array_type"
           }
         },
         {
           "type": "PREC_DYNAMIC",
           "value": -2,
           "content": {
-            "type": "SYMBOL",
-            "name": "implicit_length_array_type"
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "implicit_length_array_type"
+            },
+            "named": true,
+            "value": "implicit_length_array_type"
           }
         },
         {
           "type": "PREC_DYNAMIC",
           "value": -2,
           "content": {
-            "type": "SYMBOL",
-            "name": "slice_type"
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "slice_type"
+            },
+            "named": true,
+            "value": "slice_type"
           }
         },
         {
           "type": "PREC_DYNAMIC",
           "value": -2,
           "content": {
-            "type": "SYMBOL",
-            "name": "map_type"
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "map_type"
+            },
+            "named": true,
+            "value": "map_type"
           }
         },
         {
           "type": "PREC_DYNAMIC",
           "value": -2,
           "content": {
-            "type": "SYMBOL",
-            "name": "channel_type"
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "channel_type"
+            },
+            "named": true,
+            "value": "channel_type"
           }
         },
         {
           "type": "PREC_DYNAMIC",
           "value": -2,
           "content": {
-            "type": "SYMBOL",
-            "name": "function_type"
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "function_type"
+            },
+            "named": true,
+            "value": "function_type"
           }
         }
       ]
@@ -4876,16 +4923,26 @@
           "type": "PREC_DYNAMIC",
           "value": -2,
           "content": {
-            "type": "SYMBOL",
-            "name": "struct_type"
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "struct_type"
+            },
+            "named": true,
+            "value": "struct_type"
           }
         },
         {
           "type": "PREC_DYNAMIC",
           "value": -2,
           "content": {
-            "type": "SYMBOL",
-            "name": "interface_type"
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "interface_type"
+            },
+            "named": true,
+            "value": "interface_type"
           }
         },
         {
@@ -5712,8 +5769,13 @@
           "name": "_header_primary_expression"
         },
         {
-          "type": "SYMBOL",
-          "name": "_receive_channel_type_operand"
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "receive_channel_type_operand"
+          },
+          "named": true,
+          "value": "channel_type"
         }
       ]
     },
@@ -6213,48 +6275,78 @@
           "type": "PREC_DYNAMIC",
           "value": -2,
           "content": {
-            "type": "SYMBOL",
-            "name": "array_type"
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "array_type"
+            },
+            "named": true,
+            "value": "array_type"
           }
         },
         {
           "type": "PREC_DYNAMIC",
           "value": -2,
           "content": {
-            "type": "SYMBOL",
-            "name": "implicit_length_array_type"
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "implicit_length_array_type"
+            },
+            "named": true,
+            "value": "implicit_length_array_type"
           }
         },
         {
           "type": "PREC_DYNAMIC",
           "value": -2,
           "content": {
-            "type": "SYMBOL",
-            "name": "slice_type"
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "slice_type"
+            },
+            "named": true,
+            "value": "slice_type"
           }
         },
         {
           "type": "PREC_DYNAMIC",
           "value": -2,
           "content": {
-            "type": "SYMBOL",
-            "name": "map_type"
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "map_type"
+            },
+            "named": true,
+            "value": "map_type"
           }
         },
         {
           "type": "PREC_DYNAMIC",
           "value": -2,
           "content": {
-            "type": "SYMBOL",
-            "name": "channel_type"
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "channel_type"
+            },
+            "named": true,
+            "value": "channel_type"
           }
         },
         {
           "type": "PREC_DYNAMIC",
           "value": -2,
           "content": {
-            "type": "SYMBOL",
-            "name": "function_type"
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "function_type"
+            },
+            "named": true,
+            "value": "function_type"
           }
         }
       ]
@@ -6266,16 +6358,26 @@
           "type": "PREC_DYNAMIC",
           "value": -2,
           "content": {
-            "type": "SYMBOL",
-            "name": "struct_type"
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "struct_type"
+            },
+            "named": true,
+            "value": "struct_type"
           }
         },
         {
           "type": "PREC_DYNAMIC",
           "value": -2,
           "content": {
-            "type": "SYMBOL",
-            "name": "interface_type"
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
+              "name": "interface_type"
+            },
+            "named": true,
+            "value": "interface_type"
           }
         },
         {
@@ -7663,8 +7765,13 @@
       "receive_channel_type"
     ],
     [
-      "_simple_type_after_name",
-      "_receive_channel_type_operand"
+      "channel_type",
+      "receive_channel_type_operand"
+    ],
+    [
+      "channel_type",
+      "receive_channel_type",
+      "receive_channel_type_operand"
     ],
     [
       "receiver_parameter_declaration",

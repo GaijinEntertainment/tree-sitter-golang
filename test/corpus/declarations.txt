@@ -514,6 +514,78 @@ type D [P * C]int
         element: (type_identifier)))))
 
 ================================================================================
+A pointer to a channel, function or interface type is a constraint
+================================================================================
+
+package p
+
+type A[P *chan int] int
+type B[P *func()] int
+type C[P *interface{}] int
+type D[P *<-chan int] int
+type E[P (chan int)] struct{}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (type_declaration
+    (type_definition
+      name: (type_identifier)
+      type_parameters: (type_parameters
+        (type_parameter_declaration
+          name: (type_identifier)
+          constraint: (type_elem
+            (pointer_type
+              (channel_type
+                element: (type_identifier))))))
+      type: (type_identifier)))
+  (type_declaration
+    (type_definition
+      name: (type_identifier)
+      type_parameters: (type_parameters
+        (type_parameter_declaration
+          name: (type_identifier)
+          constraint: (type_elem
+            (pointer_type
+              (function_type
+                parameters: (parameters))))))
+      type: (type_identifier)))
+  (type_declaration
+    (type_definition
+      name: (type_identifier)
+      type_parameters: (type_parameters
+        (type_parameter_declaration
+          name: (type_identifier)
+          constraint: (type_elem
+            (pointer_type
+              (interface_type)))))
+      type: (type_identifier)))
+  (type_declaration
+    (type_definition
+      name: (type_identifier)
+      type_parameters: (type_parameters
+        (type_parameter_declaration
+          name: (type_identifier)
+          constraint: (type_elem
+            (pointer_type
+              (channel_type
+                element: (type_identifier))))))
+      type: (type_identifier)))
+  (type_declaration
+    (type_definition
+      name: (type_identifier)
+      type_parameters: (type_parameters
+        (type_parameter_declaration
+          name: (type_identifier)
+          constraint: (type_elem
+            (parenthesized_type
+              (channel_type
+                element: (type_identifier))))))
+      type: (struct_type))))
+
+================================================================================
 A byte order mark at the start of the file
 ================================================================================
 ﻿package p
