@@ -165,4 +165,12 @@ outer:
 	//  ^ number
 	_ = `raw`
 	//  ^ string
+	_ = Map[int, Point](x)
+	//      ^ type.builtin
+	//           ^ type
+	_ = Map[Circle, int](x)
+	//      ^ type
+	//              ^ type.builtin
+	_ = x[count]
+	//    ^ variable
 }
