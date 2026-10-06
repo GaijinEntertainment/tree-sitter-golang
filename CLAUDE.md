@@ -73,6 +73,10 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
   must not commit to the next token. The `_line_continues` of a call expression covers the end of every operand.
 - `_element_end` stands before `,` and before a closing bracket, and the parser then needs the rest of the list. A
   list that a closing bracket can follow outside the list rule, such as the names of a `const_spec`, takes plain commas.
+- Go reads the longest operator token. Tree-sitter reads only the tokens that are valid in the parse state, and splits
+  a longer token into valid ones: `a--b` becomes `a - -b`. A rule form that ends at `_never_returned`, which the
+  scanner never returns, makes the long token valid where no rule takes it. Give such a form the fields of the valid
+  forms, and alias its token to a token of a valid form, so that `src/node-types.json` stays the same.
 - An empty statement, the empty init statement and condition of a `for` clause, and a label without a statement end with
   an explicit `;` only, because Go inserts no semicolon after `;`, `{` or `:`.
 - The generator copies the fields of an aliased hidden rule into the parent node, and `child_by_field_name` on the

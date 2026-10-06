@@ -40,6 +40,9 @@ const ASSIGNMENT_OPERATORS = [
   '=', '+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=', '<<=', '>>=', '&^=',
 ];
 
+const WHOLE_TOKENS_BEFORE_OPERAND = ['++', '--', '&&', '&^'];
+const WHOLE_TOKENS_AFTER_OPERAND = ['++', '--', '<-'];
+
 const DECIMAL_DIGITS = /[0-9](_?[0-9])*/.source;
 const HEX_DIGITS = /[0-9a-fA-F](_?[0-9a-fA-F])*/.source;
 const DECIMAL_EXPONENT = `[eE][+-]?${DECIMAL_DIGITS}`;
@@ -128,15 +131,28 @@ function expressionSpine(prefix) {
         field('operator', '~'),
         field('operand', spine($, prefix, '_expression')),
       ))),
+      prec(PREC.UNARY, seq(
+        field('operator', wholeToken(WHOLE_TOKENS_BEFORE_OPERAND)),
+        $._never_returned,
+        field('operand', spine($, prefix, '_expression')),
+      )),
     ),
 
-    [spineName(prefix, 'binary_expression')]: ($) => choice(...BINARY_OPERATORS.map(([precedence, operator]) =>
-      prec.left(precedence, seq(
+    [spineName(prefix, 'binary_expression')]: ($) => choice(
+      ...BINARY_OPERATORS.map(([precedence, operator]) =>
+        prec.left(precedence, seq(
+          field('left', spine($, prefix, '_expression')),
+          field('operator', operator),
+          field('right', spine($, prefix, '_expression')),
+        )),
+      ),
+      prec.left(seq(
         field('left', spine($, prefix, '_expression')),
-        field('operator', operator),
+        field('operator', wholeToken(WHOLE_TOKENS_AFTER_OPERAND)),
+        $._never_returned,
         field('right', spine($, prefix, '_expression')),
       )),
-    )),
+    ),
 
     [spineName(prefix, '_primary_expression')]: ($) => choice(
       spine($, prefix, '_operand_expression'),
@@ -280,6 +296,7 @@ export default grammar({
     $._element_end,
     $._colon_on_same_line,
     $._line_continues,
+    $._never_returned,
     $._rejected_line_break,
     $._error_sentinel,
   ],
@@ -847,6 +864,16 @@ function packageIdentifier($) {
  */
 function labelName($) {
   return alias($.identifier, $.label);
+}
+
+// constraint: Go reads the longest operator token, and tree-sitter reads only the tokens of the current state; a form
+// that ends at `_never_returned` makes the long token valid where no rule takes it, so `a--b` is not `a - -b`
+/**
+ * @param {string[]} tokens
+ * @returns {ChoiceRule}
+ */
+function wholeToken(tokens) {
+  return choice(...tokens.map((token) => alias(token, '+')));
 }
 
 // constraint: the scanner never returns `_line_continues`; where it is valid, a line end needs an automatic semicolon

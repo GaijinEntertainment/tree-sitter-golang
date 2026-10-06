@@ -503,6 +503,54 @@ var c = struct{ A }.m
           field: (field_identifier))))))
 
 ================================================================================
+Unary operators after a space do not join the operator before them
+================================================================================
+
+package p
+
+var x = a - -b + +c & ^d && &e
+
+func f() {
+	a + b++
+	ch <- -1
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (binary_expression
+          left: (binary_expression
+            left: (binary_expression
+              left: (identifier)
+              right: (unary_expression
+                operand: (identifier)))
+            right: (binary_expression
+              left: (unary_expression
+                operand: (identifier))
+              right: (unary_expression
+                operand: (identifier))))
+          right: (unary_expression
+            operand: (identifier))))))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameters)
+    body: (block
+      (inc_dec_statement
+        operand: (binary_expression
+          left: (identifier)
+          right: (identifier)))
+      (send_statement
+        channel: (identifier)
+        value: (unary_expression
+          operand: (int_literal))))))
+
+================================================================================
 The new builtin with an expression operand
 ================================================================================
 
