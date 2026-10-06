@@ -188,9 +188,13 @@ function expressionSpine(prefix) {
       field('value', $.literal_value),
     )),
 
+    // constraint: Go reads the radix point into a literal with a base prefix: `0x1.f` is a mantissa without its
+    // exponent, and not a selector on `0x1`; the second form never completes, so that text gives ERROR
     [spineName(prefix, 'selector_expression')]: ($) => prec(PREC.PRIMARY, seq(
-      field('operand', spine($, prefix, '_operand_expression')),
-      '.',
+      choice(
+        seq(field('operand', spine($, prefix, '_operand_expression')), '.'),
+        seq($._prefixed_int_with_radix_point, $._never_returned, field('operand', $.int_literal)),
+      ),
       field('field', alias($.identifier, $.field_identifier)),
     )),
 
@@ -833,6 +837,8 @@ export default grammar({
     rune_literal: (_) => token(new RegExp(`'([^'\\\\\\n]|\\\\([abfnrtv\\\\']|${ESCAPE_TAIL}))'`)),
 
     int_literal: (_) => token(new RegExp(INT_LITERAL)),
+
+    _prefixed_int_with_radix_point: (_) => token(/0[bBoOxX][0-9a-fA-F_]*\./),
 
     float_literal: (_) => token(new RegExp(FLOAT_LITERAL)),
 

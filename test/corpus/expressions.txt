@@ -589,6 +589,43 @@ func f() {
         body: (block)))))
 
 ================================================================================
+A selector on a literal after a space
+================================================================================
+
+package p
+
+var a = 0x1 .f
+var b = 0x1p-2.f
+var c = 1.5.f
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (selector_expression
+          operand: (int_literal)
+          field: (field_identifier)))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (selector_expression
+          operand: (float_literal)
+          field: (field_identifier)))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (selector_expression
+          operand: (float_literal)
+          field: (field_identifier))))))
+
+================================================================================
 The new builtin with an expression operand
 ================================================================================
 
