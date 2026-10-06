@@ -752,6 +752,10 @@
             "named": true
           },
           {
+            "type": "index_expression",
+            "named": true
+          },
+          {
             "type": "map_type",
             "named": true
           },
