@@ -335,7 +335,8 @@ export default grammar({
     [$.type_parameter_declaration, $._type_name, $._operand_expression],
     [$.type_switch_statement, $._header_operand_expression],
     [$._simple_type, $._primary_expression],
-    [$._simple_type, $._operand_expression],
+    [$._simple_type_after_name, $._primary_expression],
+    [$._simple_type_after_name, $._operand_expression],
     [$.channel_type],
     [$.receiver_parameter_declaration, $._type_name],
     [$._range_left, $.header_expression_list],
@@ -445,7 +446,7 @@ export default grammar({
       ')',
     ),
 
-    receiver_parameter_declaration: ($) => seq(field('name', $.identifier), field('type', $._type)),
+    receiver_parameter_declaration: ($) => seq(field('name', $.identifier), field('type', $._type_after_name)),
 
     type_parameters: ($) => prec.dynamic(PREC.TYPE_PARAMETERS_OVER_ARRAY_LENGTH, seq(
       '[',
@@ -455,8 +456,10 @@ export default grammar({
 
     type_parameter_declaration: ($) => seq(
       elementList($, field('name', typeIdentifier($))),
-      field('constraint', $.type_elem),
+      field('constraint', alias($._constraint, $.type_elem)),
     ),
+
+    _constraint: ($) => seq(choice($._type_after_name, $.underlying_type), repeat(seq('|', $._type_term))),
 
     parameters: ($) => seq('(', optional(choice($._named_parameters, $._unnamed_parameters)), ')'),
 
@@ -488,7 +491,10 @@ export default grammar({
       optional(','),
     ),
 
-    parameter_declaration: ($) => seq(elementList($, field('name', $.identifier)), field('type', $._type)),
+    parameter_declaration: ($) => seq(
+      elementList($, field('name', $.identifier)),
+      field('type', $._type_after_name),
+    ),
 
     unnamed_parameter_declaration: ($) => field('type', $._type),
 
@@ -513,12 +519,17 @@ export default grammar({
 
     _type: ($) => choice($._simple_type, $.parenthesized_type),
 
-    _simple_type: ($) => choice(
+    _simple_type: ($) => choice($._simple_type_after_name, $.implicit_length_array_type),
+
+    // constraint: after a parameter name, a single field name, or the names of a type parameter, both parsers read
+    // `[` as an array length or a type argument list, which takes no `...`
+    _type_after_name: ($) => choice($._simple_type_after_name, $.parenthesized_type),
+
+    _simple_type_after_name: ($) => choice(
       $._type_name,
       $.generic_type,
       $.pointer_type,
       $.array_type,
-      $.implicit_length_array_type,
       $.slice_type,
       $.map_type,
       $.channel_type,
@@ -582,7 +593,13 @@ export default grammar({
 
     field_declaration: ($) => seq(
       choice(
-        seq(commaSep1(field('name', fieldIdentifier($))), optional($._line_continues), field('type', $._type)),
+        seq(field('name', fieldIdentifier($)), field('type', $._type_after_name)),
+        seq(
+          field('name', fieldIdentifier($)),
+          repeat1(seq(',', field('name', fieldIdentifier($)))),
+          optional($._line_continues),
+          field('type', $._type),
+        ),
         field('type', $._embedded_type),
       ),
       optional(field('tag', $._string_literal)),
