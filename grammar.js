@@ -201,7 +201,10 @@ function expressionSpine(prefix) {
     [spineName(prefix, 'index_expression')]: ($) => prec(PREC.PRIMARY, seq(
       field('operand', spine($, prefix, '_operand_expression')),
       '[',
-      closedElementList($, field('index', $._expression)),
+      field('index', $._expression),
+      repeat(seq($._element_end, ',', field('index', $._type))),
+      $._element_end,
+      optional(','),
       ']',
     )),
 

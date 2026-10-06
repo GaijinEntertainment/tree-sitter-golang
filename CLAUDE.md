@@ -85,6 +85,8 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
 - Dynamic precedence settles the parses that both stay valid: a type parameter list against an array length (as
   `isTypeElem` in `go/parser`), `<-` before `chan` (as the re-association in `go/parser`), and an expression switch
   over `.(type)`.
+- In an `index_expression` with more than one `index`, the first is an expression and the others are types, as both
+  parsers read them. `queries/highlights.scm` captures an identifier in that first position as a type.
 - Every keyword is in `KEYWORDS`, the reserved word set; an identifier never matches one.
 - The `name` of an `import_spec` has one node kind for each import form, because each form binds differently: `dot`
   (`.`) declares the exported identifiers of the package in the file block, `blank_identifier` (`_`) binds nothing,

@@ -151,6 +151,7 @@ package p
 
 var a = Map[int, string](xs, f)
 var b = Sum[float64]
+var c = Pair[x.T, []int, *p.U, V[int]]{}
 
 --------------------------------------------------------------------------------
 
@@ -165,7 +166,7 @@ var b = Sum[float64]
           function: (index_expression
             operand: (identifier)
             index: (identifier)
-            index: (identifier))
+            index: (type_identifier))
           arguments: (arguments
             (identifier)
             (identifier))))))
@@ -175,7 +176,29 @@ var b = Sum[float64]
       value: (expression_list
         (index_expression
           operand: (identifier)
-          index: (identifier))))))
+          index: (identifier)))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (composite_literal
+          type: (generic_type
+            type: (type_identifier)
+            type_arguments: (type_arguments
+              (qualified_identifier
+                package: (package_identifier)
+                name: (type_identifier))
+              (slice_type
+                element: (type_identifier))
+              (pointer_type
+                (qualified_identifier
+                  package: (package_identifier)
+                  name: (type_identifier)))
+              (generic_type
+                type: (type_identifier)
+                type_arguments: (type_arguments
+                  (type_identifier)))))
+          value: (literal_value))))))
 
 ================================================================================
 Slice expressions
