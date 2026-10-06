@@ -36,9 +36,7 @@ const KEYWORDS = [
   'if', 'import', 'interface', 'map', 'package', 'range', 'return', 'select', 'struct', 'switch', 'type', 'var',
 ];
 
-const ASSIGNMENT_OPERATORS = [
-  '=', '+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=', '<<=', '>>=', '&^=',
-];
+const ASSIGNMENT_OPERATIONS = ['+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=', '<<=', '>>=', '&^='];
 
 const WHOLE_TOKENS_BEFORE_OPERAND = ['++', '--', '&&', '&^'];
 const WHOLE_TOKENS_AFTER_OPERAND = ['++', '--', '<-'];
@@ -276,11 +274,21 @@ function expressionSpine(prefix) {
       field('operator', choice('++', '--')),
     ),
 
-    [spineName(prefix, 'assignment')]: ($) => seq(
-      field('left', spine($, prefix, 'expression_list')),
-      field('operator', choice(...ASSIGNMENT_OPERATORS)),
-      field('right', spine($, prefix, 'expression_list')),
+    // constraint: the compiler takes one operand on each side of an assignment operation such as `+=`
+    [spineName(prefix, 'assignment')]: ($) => choice(
+      seq(
+        field('left', spine($, prefix, 'expression_list')),
+        field('operator', '='),
+        field('right', spine($, prefix, 'expression_list')),
+      ),
+      seq(
+        field('left', alias($[spineName(prefix, '_single_expression')], $.expression_list)),
+        field('operator', choice(...ASSIGNMENT_OPERATIONS)),
+        field('right', alias($[spineName(prefix, '_single_expression')], $.expression_list)),
+      ),
     ),
+
+    [spineName(prefix, '_single_expression')]: ($) => spine($, prefix, '_expression'),
 
     [spineName(prefix, 'short_var_declaration')]: ($) => seq(
       field('left', spine($, prefix, 'expression_list')),
@@ -735,9 +743,11 @@ export default grammar({
     _communication: ($) => field('communication', choice($.send_statement, $.receive_statement)),
 
     receive_statement: ($) => seq(
-      optional(seq(field('left', $.expression_list), choice('=', ':='))),
+      optional(seq(field('left', alias($._one_or_two_expressions, $.expression_list)), choice('=', ':='))),
       field('right', $._expression),
     ),
+
+    _one_or_two_expressions: ($) => seq($._expression, optional(seq(',', $._expression))),
 
     for_statement: ($) => seq(
       'for',
