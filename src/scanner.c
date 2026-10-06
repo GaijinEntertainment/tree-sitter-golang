@@ -548,7 +548,7 @@ bool tree_sitter_golang_external_scanner_scan(void *payload, TSLexer *lexer, con
       return give(lexer, kind == TYPE_PARAMETER_BRACKET ? TYPE_PARAMETERS_FOLLOW : NO_TYPE_PARAMETERS);
     }
   }
-  if (valid_symbols[SAME_LINE]) {
+  if (valid_symbols[SAME_LINE] && !is_comma_or_closing_bracket(next) && next != ';') {
     return give(lexer, SAME_LINE);
   }
   if (valid_symbols[COLON_ON_SAME_LINE] && next == ':' && colon_is_a_token(lexer)) {
