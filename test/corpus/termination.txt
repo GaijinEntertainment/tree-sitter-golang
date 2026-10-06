@@ -326,3 +326,33 @@ L:
         label: (label)
         statement: (goto_statement
           label: (label))))))
+
+================================================================================
+A type switch guard before a general comment with a newline is the initializer
+================================================================================
+
+package p
+
+func f() {
+	switch x := y.(type) /*
+	*/ {
+	}
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameters)
+    body: (block
+      (expression_switch_statement
+        init_statement: (short_var_declaration
+          left: (expression_list
+            (identifier))
+          right: (expression_list
+            (type_assertion_expression
+              operand: (identifier))))
+        (comment)))))

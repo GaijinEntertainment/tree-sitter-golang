@@ -229,6 +229,7 @@ function expressionSpine(prefix) {
 
     [spineName(prefix, 'call_expression')]: ($) => prec(PREC.PRIMARY, seq(
       field('function', spine($, prefix, '_primary_expression')),
+      optional($._line_continues),
       field('arguments', $.arguments),
     )),
 
@@ -278,7 +279,8 @@ export default grammar({
     $._brace_on_same_line,
     $._element_end,
     $._colon_on_same_line,
-    $._line_break_after_element,
+    $._line_continues,
+    $._rejected_line_break,
     $._error_sentinel,
   ],
 
@@ -364,14 +366,14 @@ export default grammar({
     type_definition: ($) => seq(
       field('name', typeIdentifier($)),
       $._same_line,
-      optional(field('type_parameters', $.type_parameters)),
+      optional(typeParametersOnTheLine($)),
       field('type', $._type),
     ),
 
     alias_declaration: ($) => seq(
       field('name', typeIdentifier($)),
       $._same_line,
-      optional(field('type_parameters', $.type_parameters)),
+      optional(typeParametersOnTheLine($)),
       '=',
       field('type', $._type),
     ),
@@ -380,7 +382,7 @@ export default grammar({
       'func',
       field('name', $.identifier),
       $._same_line,
-      optional(field('type_parameters', $.type_parameters)),
+      optional(typeParametersOnTheLine($)),
       field('parameters', $.parameters),
       optional(field('result', $._result)),
       optional(seq($._brace_on_same_line, field('body', $.block))),
@@ -392,7 +394,7 @@ export default grammar({
       $._same_line,
       field('name', fieldIdentifier($)),
       $._same_line,
-      optional(field('type_parameters', $.type_parameters)),
+      optional(typeParametersOnTheLine($)),
       field('parameters', $.parameters),
       optional(field('result', $._result)),
       optional(seq($._brace_on_same_line, field('body', $.block))),
@@ -533,7 +535,7 @@ export default grammar({
 
     field_declaration: ($) => seq(
       choice(
-        seq(commaSep1(field('name', fieldIdentifier($))), field('type', $._type)),
+        seq(commaSep1(field('name', fieldIdentifier($))), optional($._line_continues), field('type', $._type)),
         field('type', $._embedded_type),
       ),
       optional(field('tag', $._string_literal)),
@@ -847,6 +849,15 @@ function packageIdentifier($) {
  */
 function labelName($) {
   return alias($.identifier, $.label);
+}
+
+// constraint: the scanner never returns `_line_continues`; where it is valid, a line end needs an automatic semicolon
+/**
+ * @param {GrammarSymbols<string>} $
+ * @returns {SeqRule}
+ */
+function typeParametersOnTheLine($) {
+  return seq(field('type_parameters', $.type_parameters), optional($._line_continues));
 }
 
 // constraint: go/parser reads `type T[P X]` as type parameters when X holds a type literal or `~` term (isTypeElem)

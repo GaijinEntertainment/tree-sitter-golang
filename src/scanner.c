@@ -7,7 +7,8 @@ enum TokenType {
   BRACE_ON_SAME_LINE,
   ELEMENT_END,
   COLON_ON_SAME_LINE,
-  LINE_BREAK_AFTER_ELEMENT,
+  LINE_CONTINUES,
+  REJECTED_LINE_BREAK,
   ERROR_SENTINEL,
 };
 
@@ -86,28 +87,23 @@ void tree_sitter_golang_external_scanner_deserialize(void *payload, const char *
   (void)length;
 }
 
-// constraint: Go inserts a semicolon at a line end after the last token of a list element; no rule accepts it there
+// constraint: Go inserts a semicolon at a line end after the token before each marker; where no rule takes a
+// semicolon, the scan returns `_rejected_line_break`, which no rule accepts
 bool tree_sitter_golang_external_scanner_scan(void *payload, TSLexer *lexer, const bool *valid_symbols) {
   (void)payload;
   if (valid_symbols[ERROR_SENTINEL]) {
     return false;
   }
-  bool after_element = valid_symbols[ELEMENT_END] || valid_symbols[COLON_ON_SAME_LINE];
-  if (!valid_symbols[AUTOMATIC_SEMICOLON] && !valid_symbols[SAME_LINE] && !valid_symbols[BRACE_ON_SAME_LINE] &&
-      !after_element) {
+  bool line_must_continue = valid_symbols[SAME_LINE] || valid_symbols[BRACE_ON_SAME_LINE] ||
+                            valid_symbols[ELEMENT_END] || valid_symbols[COLON_ON_SAME_LINE] ||
+                            valid_symbols[LINE_CONTINUES];
+  if (!valid_symbols[AUTOMATIC_SEMICOLON] && !line_must_continue) {
     return false;
   }
   lexer->mark_end(lexer);
   if (line_ends_before_next_token(lexer)) {
-    if (valid_symbols[AUTOMATIC_SEMICOLON]) {
-      lexer->result_symbol = AUTOMATIC_SEMICOLON;
-      return true;
-    }
-    if (after_element) {
-      lexer->result_symbol = LINE_BREAK_AFTER_ELEMENT;
-      return true;
-    }
-    return false;
+    lexer->result_symbol = valid_symbols[AUTOMATIC_SEMICOLON] ? AUTOMATIC_SEMICOLON : REJECTED_LINE_BREAK;
+    return true;
   }
   if (valid_symbols[BRACE_ON_SAME_LINE] && lexer->lookahead == '{') {
     lexer->result_symbol = BRACE_ON_SAME_LINE;
