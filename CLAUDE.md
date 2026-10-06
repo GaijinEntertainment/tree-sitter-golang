@@ -15,10 +15,12 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
   type literal or `~x` as an operand, `[...]T` outside a composite literal, a non-name left of `:=`, `.(type)` outside
   a type switch, an expression in a type switch case, a selector expression as a composite literal type, an expression
   as the first type argument after one name, and a constant with a type and no value.
-- The grammar differs from the parsers in one form, and no valid program holds it. It rejects an expression as a term
-  of the first constraint of a type declaration (`type T[P *C | <-D,] int`, `type T[P *C | (~D)] int`). Both parsers
-  read that bracket as an expression before they split it, and they split it by `isTypeElem`. The grammar or the
-  scanner needs that rule over every expression to accept these terms and keep the array types of the same shape.
+- The grammar differs from the parsers in one form, and no valid program holds it: a first constraint of a type
+  declaration that has an expression as a term, a type element as another term, and no comma after it
+  (`type T[P *C | (~D)] int`). Both parsers read that bracket as an expression and take a type parameter list when
+  `isTypeElem` finds a type element in a term. The grammar reads an array length there, and gives ERROR where no array
+  type can stand (`type T[P *C | (~D)] = int`). The fix needs `isTypeElem` over every expression: a third copy of the
+  binary and parenthesized expression rules, or a type parser in the scanner.
 
 ## Where things live
 

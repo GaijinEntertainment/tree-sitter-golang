@@ -14,6 +14,7 @@ const PREC = {
   TYPE_ELEMENT_IN_EXPRESSION: -2,
   TYPE_PARAMETERS_OVER_ARRAY_LENGTH: -1,
   INDEX_EXPRESSION_AS_LITERAL_TYPE: -1,
+  EXPRESSION_AS_CONSTRAINT: -1,
   RECEIVE_CHANNEL_TYPE: -1,
   TYPE_GUARD_OUTSIDE_SWITCH: -1,
   OR: 1,
@@ -31,6 +32,10 @@ const BINARY_OPERATORS = [
   [PREC.COMPARE, choice('==', '!=', '<', '<=', '>', '>=')],
   [PREC.AND, '&&'],
   [PREC.OR, '||'],
+];
+
+const BINARY_OPERATORS_OTHER_THAN_UNION = [
+  '*', '/', '%', '<<', '>>', '&', '&^', '+', '-', '^', '==', '!=', '<', '<=', '>', '>=', '&&', '||',
 ];
 
 const KEYWORDS = [
@@ -467,6 +472,7 @@ export default grammar({
     [$._type_name, $._parenthesized_possible_type],
     [$.type_parameter_declaration, $._possible_type_operand],
     [$.type_parameter_declaration, $._type_name, $._possible_type_operand],
+    [$.type_parameter_declaration, $.type_parameter_declaration_with_expression, $._possible_type_operand],
     [$.type_switch_statement, $._header_possible_type_operand],
     [$._simple_type, $._possible_type_operand_other_than_name_and_channel_type],
     [$._simple_type, $._parenthesized_literal_type],
@@ -600,6 +606,33 @@ export default grammar({
     ),
 
     _constraint: ($) => seq(choice($._type_after_name, $.underlying_type), repeat(seq('|', $._type_term))),
+
+    // constraint: both parsers read the bracket of a type declaration as an expression from its first name, and split
+    // it before a comma into that name and the rest (`extractName` with `force`); the rest is `*x` or one call
+    // argument, and then terms that bind tighter than `|`; the form with another operator never completes, and
+    // makes that operator valid after a term, so that the precedence of the term ends it there
+    _type_parameters_with_expression: ($) => prec.dynamic(PREC.TYPE_PARAMETERS_OVER_ARRAY_LENGTH, seq(
+      '[',
+      alias($.type_parameter_declaration_with_expression, $.type_parameter_declaration),
+      $._element_end,
+      ',',
+      optional(closedElementList($, $.type_parameter_declaration)),
+      ']',
+    )),
+
+    type_parameter_declaration_with_expression: ($) => prec.dynamic(PREC.EXPRESSION_AS_CONSTRAINT, seq(
+      field('name', typeIdentifier($)),
+      field('constraint', alias($._expression_constraint, $.type_elem)),
+    )),
+
+    _expression_constraint: ($) => choice(
+      alias($.indirection_expression, $.unary_expression),
+      alias($._call_argument_as_constraint, $.parenthesized_expression),
+      prec.left(PREC.ADD, seq($._expression_constraint, '|', $._expression)),
+      seq($._expression_constraint, choice(...BINARY_OPERATORS_OTHER_THAN_UNION), $._never_returned),
+    ),
+
+    _call_argument_as_constraint: ($) => seq('(', $._expression, $._element_end, optional(','), ')'),
 
     parameters: ($) => seq('(', optional(choice($._named_parameters, $._unnamed_parameters)), ')'),
 
@@ -1147,8 +1180,9 @@ function wholeToken(tokens) {
  * @returns {ChoiceRule}
  */
 function typeParametersAfterName($) {
+  const withExpression = alias($._type_parameters_with_expression, $.type_parameters);
   return choice(
-    seq($._same_line, optional(typeParametersOnTheLine($))),
+    seq($._same_line, optional(choice(typeParametersOnTheLine($), typeParametersOnTheLine($, withExpression)))),
     seq($._type_parameters_follow, typeParametersOnTheLine($)),
     $._no_type_parameters,
   );
@@ -1157,10 +1191,11 @@ function typeParametersAfterName($) {
 // constraint: the scanner never returns `_line_continues`; where it is valid, a line end needs an automatic semicolon
 /**
  * @param {GrammarSymbols<string>} $
+ * @param {RuleOrLiteral} [typeParameters]
  * @returns {SeqRule}
  */
-function typeParametersOnTheLine($) {
-  return seq(field('type_parameters', $.type_parameters), optional($._line_continues));
+function typeParametersOnTheLine($, typeParameters = $.type_parameters) {
+  return seq(field('type_parameters', typeParameters), optional($._line_continues));
 }
 
 // constraint: go/parser reads `type T[P X]` as type parameters when X holds a type literal or `~` term (isTypeElem);

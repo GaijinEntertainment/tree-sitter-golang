@@ -595,6 +595,53 @@ type G [P *(*[]int)]int
         element: (type_identifier)))))
 
 ================================================================================
+A comma makes a constraint of an expression after the first name of a type declaration
+================================================================================
+
+package p
+
+type A[P *C | <-D,] int
+type B[P (f(x)) | 1 * 2, Q any] = int
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (type_declaration
+    (type_definition
+      name: (type_identifier)
+      type_parameters: (type_parameters
+        (type_parameter_declaration
+          name: (type_identifier)
+          constraint: (type_elem
+            (unary_expression
+              operand: (identifier))
+            (unary_expression
+              operand: (identifier)))))
+      type: (type_identifier)))
+  (type_declaration
+    (alias_declaration
+      name: (type_identifier)
+      type_parameters: (type_parameters
+        (type_parameter_declaration
+          name: (type_identifier)
+          constraint: (type_elem
+            (parenthesized_expression
+              (call_expression
+                function: (identifier)
+                arguments: (arguments
+                  (identifier))))
+            (binary_expression
+              left: (int_literal)
+              right: (int_literal))))
+        (type_parameter_declaration
+          name: (type_identifier)
+          constraint: (type_elem
+            (type_identifier))))
+      type: (type_identifier))))
+
+================================================================================
 A pointer to a channel, function or interface type is a constraint
 ================================================================================
 
