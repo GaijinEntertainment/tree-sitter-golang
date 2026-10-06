@@ -259,7 +259,11 @@ function expressionSpine(prefix) {
       spine($, prefix, 'short_var_declaration'),
     ),
 
-    [spineName(prefix, 'expression_statement')]: ($) => spine($, prefix, '_expression'),
+    // constraint: both parsers take `~x` as an operand, and reject `~` as the first token of a statement in a block;
+    // the scanner never returns `_statement_start`, and gives `_rejected_token` for a `~` where that marker is valid
+    [spineName(prefix, 'expression_statement')]: ($) => prefix === '' ?
+      seq(optional($._statement_start), $._expression) :
+      spine($, prefix, '_expression'),
 
     [spineName(prefix, 'send_statement')]: ($) => seq(
       field('channel', spine($, prefix, '_expression')),
@@ -296,8 +300,9 @@ export default grammar({
     $._element_end,
     $._colon_on_same_line,
     $._line_continues,
+    $._statement_start,
     $._never_returned,
-    $._rejected_line_break,
+    $._rejected_token,
     $._error_sentinel,
   ],
 
