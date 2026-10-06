@@ -328,6 +328,28 @@ L:
           label: (label))))))
 
 ================================================================================
+A dot import name before a line end
+================================================================================
+
+package p
+
+import (
+	.
+	"math"
+)
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (import_declaration
+    (import_spec
+      name: (dot)
+      path: (interpreted_string_literal
+        (string_content)))))
+
+================================================================================
 A type switch guard before a general comment with a newline is the initializer
 ================================================================================
 
