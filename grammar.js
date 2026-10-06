@@ -314,7 +314,7 @@ function expressionSpine(prefix) {
           repeat1(seq($._element_end, ',', field('index', $._type))),
         ),
       ),
-      $._element_end,
+      listEnd($),
       optional(','),
       ']',
     )),
@@ -325,7 +325,7 @@ function expressionSpine(prefix) {
         '[',
         field('index', $._expression),
         repeat(seq($._element_end, ',', field('index', $._type))),
-        $._element_end,
+        listEnd($),
         optional(','),
         ']',
       ),
@@ -333,7 +333,7 @@ function expressionSpine(prefix) {
         field('operand', spine($, prefix, '_possible_type_operand')),
         '[',
         field('index', choice(...valueExpressions($))),
-        $._element_end,
+        listEnd($),
         optional(','),
         ']',
       ),
@@ -346,7 +346,7 @@ function expressionSpine(prefix) {
         seq(
           optional(seq(field('low', $._expression), $._colon_on_same_line)),
           ':',
-          optional(seq(field('high', $._expression), $._element_end)),
+          optional(seq(field('high', $._expression), listEnd($))),
         ),
         seq(
           optional(seq(field('low', $._expression), $._colon_on_same_line)),
@@ -355,7 +355,7 @@ function expressionSpine(prefix) {
           $._colon_on_same_line,
           ':',
           field('max', $._expression),
-          $._element_end,
+          listEnd($),
         ),
       ),
       ']',
@@ -367,7 +367,7 @@ function expressionSpine(prefix) {
         '.',
         '(',
         field('type', $._type),
-        $._element_end,
+        listEnd($),
         ')',
       )),
       prec(PREC.TYPE_GUARD_OUTSIDE_SWITCH, seq(
@@ -454,6 +454,7 @@ export default grammar({
     $._interpreted_string_content,
     $._raw_string_content,
     $._rejected_token,
+    $._recovery_line_end,
     $._error_sentinel,
   ],
 
@@ -498,12 +499,7 @@ export default grammar({
   ],
 
   rules: {
-    source_file: ($) => seq(
-      $.package_clause,
-      $._terminator,
-      repeat(seq($.import_declaration, $._terminator)),
-      repeat(seq($._top_level_declaration, $._terminator)),
-    ),
+    source_file: ($) => seq($.package_clause, $._terminator, importItems($), declarationItems($)),
 
     package_clause: ($) => seq('package', field('name', packageIdentifier($))),
 
@@ -587,7 +583,7 @@ export default grammar({
         alias($.receiver_parameter_declaration, $.parameter_declaration),
         alias($.unnamed_parameter_declaration, $.parameter_declaration),
       ),
-      $._element_end,
+      listEnd($),
       optional(','),
       ')',
     ),
@@ -625,7 +621,7 @@ export default grammar({
     _type_parameters_with_one_expression: ($) => seq(
       '[',
       alias($.type_parameter_declaration_with_expression, $.type_parameter_declaration),
-      $._element_end,
+      listEnd($),
       ']',
     ),
 
@@ -641,7 +637,7 @@ export default grammar({
       seq($._expression_constraint, choice(...BINARY_OPERATORS_OTHER_THAN_UNION), $._never_returned),
     ),
 
-    _call_argument_as_constraint: ($) => seq('(', $._expression, $._element_end, optional(','), ')'),
+    _call_argument_as_constraint: ($) => seq('(', $._expression, listEnd($), optional(','), ')'),
 
     parameters: ($) => seq('(', optional(choice($._named_parameters, $._unnamed_parameters)), ')'),
 
@@ -653,7 +649,7 @@ export default grammar({
         ),
         alias($.variadic_parameter_declaration, $.parameter_declaration),
       ),
-      $._element_end,
+      listEnd($),
       optional(','),
     ),
 
@@ -669,7 +665,7 @@ export default grammar({
         ),
         alias($.unnamed_variadic_parameter_declaration, $.parameter_declaration),
       ),
-      $._element_end,
+      listEnd($),
       optional(','),
     ),
 
@@ -696,7 +692,7 @@ export default grammar({
           elementList($, $.parameter_declaration),
           elementList($, alias($.unnamed_parameter_declaration, $.parameter_declaration)),
         ),
-        $._element_end,
+        listEnd($),
         optional(','),
       )),
       ')',
@@ -726,7 +722,7 @@ export default grammar({
 
     _type_name: ($) => choice(typeIdentifier($), $.qualified_identifier),
 
-    parenthesized_type: ($) => seq('(', $._type, $._element_end, ')'),
+    parenthesized_type: ($) => seq('(', $._type, listEnd($), ')'),
 
     qualified_identifier: ($) => prec(PREC.PRIMARY, seq(
       field('package', packageIdentifier($)),
@@ -754,7 +750,7 @@ export default grammar({
       '[',
       $._expression,
       repeat(seq($._element_end, ',', $._type)),
-      $._element_end,
+      listEnd($),
       optional(','),
       ']',
     ),
@@ -764,7 +760,7 @@ export default grammar({
     array_type: ($) => prec.right(seq(
       '[',
       field('length', $._expression),
-      $._element_end,
+      listEnd($),
       ']',
       $._same_line,
       field('element', $._type),
@@ -778,7 +774,7 @@ export default grammar({
       'map',
       '[',
       field('key', $._type),
-      $._element_end,
+      listEnd($),
       ']',
       $._same_line,
       field('element', $._type),
@@ -1042,7 +1038,7 @@ export default grammar({
     parenthesized_expression: ($) => seq(
       '(',
       choice(...valueExpressions($), seq($._never_returned, $._expression)),
-      $._element_end,
+      listEnd($),
       ')',
     ),
 
@@ -1055,7 +1051,7 @@ export default grammar({
         typeElementInExpression($.channel_type),
         $._possible_type_operand_other_than_name_and_channel_or_literal_type,
       ),
-      $._element_end,
+      listEnd($),
       ')',
     ),
 
@@ -1065,7 +1061,7 @@ export default grammar({
         ...LITERAL_TYPES_WITHOUT_NAME.map((type) => $[type]),
         alias($._parenthesized_literal_type, $.parenthesized_expression),
       ),
-      $._element_end,
+      listEnd($),
       ')',
     )),
 
@@ -1086,7 +1082,7 @@ export default grammar({
       '(',
       optional(seq(
         elementList($, $._expression),
-        choice(seq($._element_end, optional(',')), seq('...', optional(','))),
+        choice(seq(listEnd($), optional(',')), seq('...', optional(','))),
       )),
       ')',
     ),
@@ -1128,7 +1124,8 @@ export default grammar({
 
     identifier: (_) => /[_\p{L}][_\p{L}\p{Nd}]*/,
 
-    _terminator: ($) => choice(';', $._automatic_semicolon),
+    // constraint: the scanner gives `_recovery_line_end` only while the parser recovers from an error
+    _terminator: ($) => choice(';', $._automatic_semicolon, $._recovery_line_end),
 
     // constraint: the scanner gives a line comment and rejects the comment text that Go rejects; the lexer takes
     // this rule for a general comment, and for each comment while the parser recovers from an error
@@ -1248,7 +1245,9 @@ function statementList($, finalForms) {
   );
 }
 
-// constraint: Go inserts no semicolon after `:`, so only an explicit `;` ends a label without a statement
+// constraint: Go inserts no semicolon after `:`, so only an explicit `;` ends a label without a statement;
+// `_recovery_line_end` as an item makes the start of each item a state where the parser continues after an error,
+// and no rule shifts it there, because the parser reads the line end again in that state
 /**
  * @param {GrammarSymbols<string>} $
  * @returns {ChoiceRule}
@@ -1258,6 +1257,7 @@ function statementItem($) {
     seq($._statement, $._terminator),
     alias($.semicolon_labeled_statement, $.labeled_statement),
     $.empty_statement,
+    $._recovery_line_end,
   );
 }
 
@@ -1277,7 +1277,18 @@ function elementList($, rule) {
  * @returns {SeqRule}
  */
 function closedElementList($, rule) {
-  return seq(elementList($, rule), $._element_end, optional(','));
+  return seq(elementList($, rule), listEnd($), optional(','));
+}
+
+// constraint: the scanner gives `_element_end` wherever it is valid before `,` or a closing bracket, so a text
+// without an error never takes the form without it; the parser closes an open bracket with one MISSING token, and
+// with a required marker before the bracket no single token closes the list
+/**
+ * @param {GrammarSymbols<string>} $
+ * @returns {ChoiceRule}
+ */
+function listEnd($) {
+  return optional($._element_end);
 }
 
 /**
@@ -1288,6 +1299,29 @@ function commaSep1(rule) {
   return seq(rule, repeat(seq(',', rule)));
 }
 
+// constraint: the precedence gives a `_recovery_line_end` after an import to this list, and not to the declarations
+/**
+ * @param {GrammarSymbols<string>} $
+ * @returns {RepeatRule}
+ */
+function importItems($) {
+  return repeat(choice(seq($.import_declaration, $._terminator), prec(1, $._recovery_line_end)));
+}
+
+// constraint: the scanner gives a semicolon at the end of the file, so a text without an error never takes the last
+// declaration without a terminator; with that form the parser can close an open block at the end of the file with a
+// MISSING `}`
+/**
+ * @param {GrammarSymbols<string>} $
+ * @returns {SeqRule}
+ */
+function declarationItems($) {
+  return seq(
+    repeat(choice(seq($._top_level_declaration, $._terminator), $._recovery_line_end)),
+    optional($._top_level_declaration),
+  );
+}
+
 // constraint: Go lets a list omit the semicolon before a closing `)` or `}`
 /**
  * @param {GrammarSymbols<string>} $
@@ -1295,5 +1329,5 @@ function commaSep1(rule) {
  * @returns {SeqRule}
  */
 function terminated($, rule) {
-  return seq(repeat(seq(rule, $._terminator)), optional(rule));
+  return seq(repeat(choice(seq(rule, $._terminator), $._recovery_line_end)), optional(rule));
 }
