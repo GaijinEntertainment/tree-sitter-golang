@@ -15,14 +15,12 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
   type literal or `~x` as an operand, `[...]T` outside a composite literal, a non-name left of `:=`, `.(type)` outside
   a type switch, an expression in a type switch case, a selector expression as a composite literal type, an expression
   as the first type argument after one name, and a constant with a type and no value.
-- The grammar differs from the parsers in three forms. No valid program holds one of them, and each needs a second
+- The grammar differs from the parsers in two forms. No valid program holds one of them, and each needs a second
   expression grammar or costs parse speed on valid code:
   - It rejects a composite literal whose type is an index expression other than a type name with type arguments
     (`a.b.c[T]{}`, `a[T][U]{}`, `a[b.c.d]{}`). The compiler takes each index there that is not a value by its syntax.
   - It rejects an expression as a term of the first constraint of a type declaration (`type T[P *C | <-D,] int`,
     `type T[P *C | (~D)] int`). Both parsers read that bracket as an expression before they split it.
-  - It accepts a parenthesized array, slice, struct or map type before the block of a header
-    (`for range ([]int) {}`). Both parsers read that text as a composite literal with a type in parentheses.
 
 ## Where things live
 
@@ -92,6 +90,12 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
   a longer token into valid ones: `a--b` becomes `a - -b`. A rule form that ends at `_never_returned`, which the
   scanner never returns, makes the long token valid where no rule takes it. Give such a form the fields of the valid
   forms, and alias its token to a token of a valid form, so that `src/node-types.json` stays the same.
+- An array, slice, struct or map type in parentheses is `_parenthesized_literal_type`, and `parenthesized_expression`
+  takes every other expression, so each text has one of the two rules. Do not settle the two with a static precedence:
+  it also removes the parse as a `parenthesized_type` where a type can stand.
+- The generator reports a required child as optional in `src/node-types.json` when it is reached through a hidden rule
+  whose every alternative is a hidden rule that `grammar.js` defines later. Give such a rule one alternative with a
+  visible node.
 - An empty statement, the empty init statement and condition of a `for` clause, and a label without a statement end with
   an explicit `;` only, because Go inserts no semicolon after `;`, `{` or `:`.
 - The generator copies the fields of an aliased hidden rule into the parent node, and `child_by_field_name` on the

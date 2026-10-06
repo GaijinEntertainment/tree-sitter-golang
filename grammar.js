@@ -42,6 +42,8 @@ const ASSIGNMENT_OPERATIONS = ['+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=', '
 const WHOLE_TOKENS_BEFORE_OPERAND = ['++', '--', '&&', '&^'];
 const WHOLE_TOKENS_AFTER_OPERAND = ['++', '--', '<-'];
 
+const LITERAL_TYPES_WITHOUT_NAME = ['array_type', 'implicit_length_array_type', 'slice_type', 'map_type', 'struct_type'];
+
 const DECIMAL_DIGITS = /[0-9](_?[0-9])*/.source;
 const HEX_DIGITS = /[0-9a-fA-F](_?[0-9a-fA-F])*/.source;
 const DECIMAL_EXPONENT = `[eE][+-]?${DECIMAL_DIGITS}`;
@@ -112,13 +114,7 @@ function operandBeforeDot($, prefix) {
  */
 function expressionSpine(prefix) {
   const literalTypes = ($) => {
-    const types = [
-      $.array_type,
-      $.implicit_length_array_type,
-      $.slice_type,
-      $.map_type,
-      $.struct_type,
-    ];
+    const types = LITERAL_TYPES_WITHOUT_NAME.map((type) => $[type]);
     if (prefix !== '') {
       return types;
     }
@@ -185,13 +181,20 @@ function expressionSpine(prefix) {
       spine($, prefix, '_operand_other_than_name_and_channel_type'),
     ),
 
+    // constraint: both parsers read `{` after an array, slice, struct or map type as a composite literal value,
+    // also when the type is in parentheses, and then report the parentheses; a block can follow an operand of a
+    // header, so the header gives such a type in parentheses a form that takes the `{` and never completes
     [spineName(prefix, '_operand_other_than_name_and_channel_type')]: ($) => choice(
-      typeElementInExpression($.array_type),
-      typeElementInExpression($.implicit_length_array_type),
-      typeElementInExpression($.slice_type),
-      typeElementInExpression($.map_type),
+      ...LITERAL_TYPES_WITHOUT_NAME.map((type) => typeElementInExpression($[type])),
+      alias(
+        prefix === '' ? $._parenthesized_literal_type : $._header_parenthesized_literal_type,
+        $.parenthesized_expression,
+      ),
+      spine($, prefix, '_operand_other_than_name_and_channel_or_literal_type'),
+    ),
+
+    [spineName(prefix, '_operand_other_than_name_and_channel_or_literal_type')]: ($) => choice(
       typeElementInExpression($.function_type),
-      typeElementInExpression($.struct_type),
       typeElementInExpression($.interface_type),
       $.int_literal,
       $.float_literal,
@@ -374,12 +377,17 @@ export default grammar({
     [$.parameter_declaration, $._type_name],
     [$.qualified_identifier, $.selector_expression],
     [$._type_name, $._operand_expression],
+    [$._type_name, $._expression_other_than_literal_type],
     [$.type_parameter_declaration, $._operand_expression],
     [$.type_parameter_declaration, $._type_name, $._operand_expression],
     [$.type_switch_statement, $._header_operand_expression],
     [$._simple_type, $._operand_other_than_name_and_channel_type],
+    [$._simple_type, $._parenthesized_literal_type],
+    [$._simple_type_after_name, $._parenthesized_literal_type],
+    [$._simple_type_after_name, $._expression_other_than_literal_type],
     [$._simple_type_after_name, $._operand_other_than_name],
     [$._simple_type_after_name, $._operand_other_than_name_and_channel_type],
+    [$._simple_type_after_name, $._operand_other_than_name_and_channel_or_literal_type],
     [$.channel_type, $.receive_channel_type],
     [$.receive_channel_type, $.receive_channel_type_operand],
     [$._type_name, $.generic_type_with_expression],
@@ -901,7 +909,37 @@ export default grammar({
     ...expressionSpine(''),
     ...expressionSpine('header_'),
 
-    parenthesized_expression: ($) => seq('(', $._expression, $._element_end, ')'),
+    // constraint: the second form never completes; it keeps `_expression` as the child type in `node-types.json`
+    parenthesized_expression: ($) => seq(
+      '(',
+      choice($._expression_other_than_literal_type, seq($._never_returned, $._expression)),
+      $._element_end,
+      ')',
+    ),
+
+    _expression_other_than_literal_type: ($) => choice(
+      $.unary_expression,
+      $.binary_expression,
+      $.identifier,
+      typeElementInExpression($.channel_type),
+      alias($.receive_channel_type_operand, $.channel_type),
+      $._operand_other_than_name_and_channel_or_literal_type,
+    ),
+
+    _parenthesized_literal_type: ($) => prec.dynamic(PREC.TYPE_ELEMENT_IN_EXPRESSION, seq(
+      '(',
+      choice(
+        ...LITERAL_TYPES_WITHOUT_NAME.map((type) => $[type]),
+        alias($._parenthesized_literal_type, $.parenthesized_expression),
+      ),
+      $._element_end,
+      ')',
+    )),
+
+    _header_parenthesized_literal_type: ($) => prec.right(seq(
+      $._parenthesized_literal_type,
+      optional(seq($._brace_on_same_line, $._never_returned)),
+    )),
 
     function_literal: ($) => seq(
       'func',
