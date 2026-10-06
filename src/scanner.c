@@ -17,7 +17,12 @@ enum TokenType {
   ERROR_SENTINEL,
 };
 
-enum { BYTE_ORDER_MARK = 0xFEFF };
+enum {
+  BYTE_ORDER_MARK = 0xFEFF,
+  DIRECTIVE_PREFIX_LENGTH = 5,
+  NOT_A_DIRECTIVE = DIRECTIVE_PREFIX_LENGTH + 1,
+  MAX_LINE_OR_COLUMN = 1 << 30,
+};
 
 static void advance(TSLexer *lexer) { lexer->advance(lexer, false); }
 
@@ -29,32 +34,112 @@ static bool is_white_space(int32_t c) { return c == ' ' || c == '\t' || c == '\r
 // UTF-8, for which tree-sitter gives a negative character
 static bool is_valid_in_source(int32_t c) { return c > 0 && c != BYTE_ORDER_MARK; }
 
-// constraint: a line comment ends before the line end and before one carriage return there, which go/scanner drops
+typedef struct {
+  uint64_t value;
+  unsigned digit_count;
+  bool has_other_character;
+  bool overflows;
+} DirectiveNumber;
+
+// constraint: a comment whose text starts with `line ` is a line directive; the text after its last `:` is the
+// line, or the column when the text before it is a number too, and both parsers reject a line or a column that is
+// not a number from 1 to 2^30
+typedef struct {
+  unsigned matched_prefix_length;
+  unsigned colon_count;
+  DirectiveNumber last;
+  DirectiveNumber before_last;
+} LineDirective;
+
+static void read_directive_character(LineDirective *directive, int32_t c) {
+  static const char prefix[DIRECTIVE_PREFIX_LENGTH + 1] = "line ";
+  if (directive->matched_prefix_length < DIRECTIVE_PREFIX_LENGTH) {
+    bool matches = c == prefix[directive->matched_prefix_length];
+    directive->matched_prefix_length = matches ? directive->matched_prefix_length + 1 : NOT_A_DIRECTIVE;
+    return;
+  }
+  if (directive->matched_prefix_length == NOT_A_DIRECTIVE) {
+    return;
+  }
+  if (c == ':') {
+    directive->colon_count++;
+    directive->before_last = directive->last;
+    directive->last = (DirectiveNumber){0};
+    return;
+  }
+  DirectiveNumber *number = &directive->last;
+  if (c < '0' || c > '9') {
+    number->has_other_character = true;
+    return;
+  }
+  uint64_t digit = (uint64_t)(c - '0');
+  if (number->value > (UINT64_MAX - digit) / 10) {
+    number->overflows = true;
+    return;
+  }
+  number->value = number->value * 10 + digit;
+  number->digit_count++;
+}
+
+static bool is_number(const DirectiveNumber *number) {
+  return number->digit_count > 0 && !number->has_other_character && !number->overflows;
+}
+
+static bool is_line_or_column(uint64_t value) { return value >= 1 && value <= MAX_LINE_OR_COLUMN; }
+
+static bool directive_is_valid(const LineDirective *directive) {
+  if (directive->matched_prefix_length != DIRECTIVE_PREFIX_LENGTH || directive->colon_count == 0) {
+    return true;
+  }
+  if (!is_number(&directive->last)) {
+    return false;
+  }
+  if (directive->colon_count > 1 && is_number(&directive->before_last)) {
+    return is_line_or_column(directive->last.value) && is_line_or_column(directive->before_last.value);
+  }
+  return is_line_or_column(directive->last.value);
+}
+
+// constraint: a line comment ends before the line end and before one carriage return there, which go/scanner drops;
+// it is a line directive only when it starts the line
 // The lexer stands on the second `/`. Returns false for a comment that Go rejects.
 static bool scan_line_comment(TSLexer *lexer) {
   advance(lexer);
+  LineDirective directive = {0};
+  bool starts_line = false;
   bool content_is_valid = true;
   bool carriage_return_is_pending = false;
   while (!lexer->eof(lexer) && lexer->lookahead != '\n') {
     int32_t c = lexer->lookahead;
+    if (carriage_return_is_pending) {
+      read_directive_character(&directive, '\r');
+    }
     carriage_return_is_pending = c == '\r';
     if (carriage_return_is_pending) {
       lexer->mark_end(lexer);
+      advance(lexer);
+      continue;
     }
     if (!is_valid_in_source(c)) {
       content_is_valid = false;
     }
     advance(lexer);
+    bool prefix_was_incomplete = directive.matched_prefix_length < DIRECTIVE_PREFIX_LENGTH;
+    read_directive_character(&directive, c);
+    if (prefix_was_incomplete && directive.matched_prefix_length == DIRECTIVE_PREFIX_LENGTH) {
+      starts_line = lexer->get_column(lexer) == 2 + DIRECTIVE_PREFIX_LENGTH;
+    }
   }
   if (!carriage_return_is_pending) {
     lexer->mark_end(lexer);
   }
-  return content_is_valid;
+  return content_is_valid && (!starts_line || directive_is_valid(&directive));
 }
 
 // The lexer stands on the `*` after `/`. Returns false when the comment has no end.
 static bool scan_general_comment(TSLexer *lexer, bool *crossed_newline, bool *is_valid) {
   advance(lexer);
+  LineDirective directive = {0};
   for (;;) {
     if (lexer->eof(lexer)) {
       return false;
@@ -63,7 +148,7 @@ static bool scan_general_comment(TSLexer *lexer, bool *crossed_newline, bool *is
     advance(lexer);
     if (c == '*' && lexer->lookahead == '/') {
       advance(lexer);
-      return true;
+      break;
     }
     if (c == '\n') {
       *crossed_newline = true;
@@ -71,7 +156,12 @@ static bool scan_general_comment(TSLexer *lexer, bool *crossed_newline, bool *is
     if (!is_valid_in_source(c)) {
       *is_valid = false;
     }
+    read_directive_character(&directive, c);
   }
+  if (!directive_is_valid(&directive)) {
+    *is_valid = false;
+  }
+  return true;
 }
 
 // Returns the first character of the next token on the line, after the general comments that stay on the line, and
