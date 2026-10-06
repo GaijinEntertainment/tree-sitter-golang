@@ -2029,7 +2029,15 @@
         "required": true,
         "types": [
           {
+            "type": "array_type",
+            "named": true
+          },
+          {
             "type": "call_expression",
+            "named": true
+          },
+          {
+            "type": "channel_type",
             "named": true
           },
           {
@@ -2045,11 +2053,19 @@
             "named": true
           },
           {
+            "type": "function_type",
+            "named": true
+          },
+          {
             "type": "identifier",
             "named": true
           },
           {
             "type": "imaginary_literal",
+            "named": true
+          },
+          {
+            "type": "implicit_length_array_type",
             "named": true
           },
           {
@@ -2066,6 +2082,10 @@
           },
           {
             "type": "interpreted_string_literal",
+            "named": true
+          },
+          {
+            "type": "map_type",
             "named": true
           },
           {
@@ -2086,6 +2106,10 @@
           },
           {
             "type": "slice_expression",
+            "named": true
+          },
+          {
+            "type": "slice_type",
             "named": true
           },
           {
@@ -2790,7 +2814,15 @@
         "required": true,
         "types": [
           {
+            "type": "array_type",
+            "named": true
+          },
+          {
             "type": "call_expression",
+            "named": true
+          },
+          {
+            "type": "channel_type",
             "named": true
           },
           {
@@ -2806,11 +2838,19 @@
             "named": true
           },
           {
+            "type": "function_type",
+            "named": true
+          },
+          {
             "type": "identifier",
             "named": true
           },
           {
             "type": "imaginary_literal",
+            "named": true
+          },
+          {
+            "type": "implicit_length_array_type",
             "named": true
           },
           {
@@ -2827,6 +2867,10 @@
           },
           {
             "type": "interpreted_string_literal",
+            "named": true
+          },
+          {
+            "type": "map_type",
             "named": true
           },
           {
@@ -2847,6 +2891,10 @@
           },
           {
             "type": "slice_expression",
+            "named": true
+          },
+          {
+            "type": "slice_type",
             "named": true
           },
           {
@@ -2952,7 +3000,15 @@
         "required": true,
         "types": [
           {
+            "type": "array_type",
+            "named": true
+          },
+          {
             "type": "call_expression",
+            "named": true
+          },
+          {
+            "type": "channel_type",
             "named": true
           },
           {
@@ -2968,11 +3024,19 @@
             "named": true
           },
           {
+            "type": "function_type",
+            "named": true
+          },
+          {
             "type": "identifier",
             "named": true
           },
           {
             "type": "imaginary_literal",
+            "named": true
+          },
+          {
+            "type": "implicit_length_array_type",
             "named": true
           },
           {
@@ -2989,6 +3053,10 @@
           },
           {
             "type": "interpreted_string_literal",
+            "named": true
+          },
+          {
+            "type": "map_type",
             "named": true
           },
           {
@@ -3009,6 +3077,10 @@
           },
           {
             "type": "slice_expression",
+            "named": true
+          },
+          {
+            "type": "slice_type",
             "named": true
           },
           {
@@ -3122,7 +3194,15 @@
         "required": true,
         "types": [
           {
+            "type": "array_type",
+            "named": true
+          },
+          {
             "type": "call_expression",
+            "named": true
+          },
+          {
+            "type": "channel_type",
             "named": true
           },
           {
@@ -3138,11 +3218,19 @@
             "named": true
           },
           {
+            "type": "function_type",
+            "named": true
+          },
+          {
             "type": "identifier",
             "named": true
           },
           {
             "type": "imaginary_literal",
+            "named": true
+          },
+          {
+            "type": "implicit_length_array_type",
             "named": true
           },
           {
@@ -3159,6 +3247,10 @@
           },
           {
             "type": "interpreted_string_literal",
+            "named": true
+          },
+          {
+            "type": "map_type",
             "named": true
           },
           {
@@ -3179,6 +3271,10 @@
           },
           {
             "type": "slice_expression",
+            "named": true
+          },
+          {
+            "type": "slice_type",
             "named": true
           },
           {
@@ -3397,7 +3493,15 @@
         "required": true,
         "types": [
           {
+            "type": "array_type",
+            "named": true
+          },
+          {
             "type": "call_expression",
+            "named": true
+          },
+          {
+            "type": "channel_type",
             "named": true
           },
           {
@@ -3413,11 +3517,19 @@
             "named": true
           },
           {
+            "type": "function_type",
+            "named": true
+          },
+          {
             "type": "identifier",
             "named": true
           },
           {
             "type": "imaginary_literal",
+            "named": true
+          },
+          {
+            "type": "implicit_length_array_type",
             "named": true
           },
           {
@@ -3434,6 +3546,10 @@
           },
           {
             "type": "interpreted_string_literal",
+            "named": true
+          },
+          {
+            "type": "map_type",
             "named": true
           },
           {
@@ -3454,6 +3570,10 @@
           },
           {
             "type": "slice_expression",
+            "named": true
+          },
+          {
+            "type": "slice_type",
             "named": true
           },
           {

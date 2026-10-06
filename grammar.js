@@ -129,7 +129,7 @@ function expressionSpine(prefix) {
     [spineName(prefix, '_expression')]: ($) => choice(
       spine($, prefix, 'unary_expression'),
       spine($, prefix, 'binary_expression'),
-      spine($, prefix, '_primary_expression'),
+      spine($, prefix, '_operand_expression'),
       alias($.receive_channel_type_operand, $.channel_type),
     ),
 
@@ -169,22 +169,18 @@ function expressionSpine(prefix) {
       )),
     ),
 
-    [spineName(prefix, '_primary_expression')]: ($) => choice(
-      spine($, prefix, '_operand_expression'),
-      typeElementInExpression($.array_type),
-      typeElementInExpression($.implicit_length_array_type),
-      typeElementInExpression($.slice_type),
-      typeElementInExpression($.map_type),
-      typeElementInExpression($.channel_type),
-      typeElementInExpression($.function_type),
-    ),
-
     [spineName(prefix, '_operand_expression')]: ($) => choice(
       $.identifier,
       spine($, prefix, '_operand_other_than_name'),
     ),
 
     [spineName(prefix, '_operand_other_than_name')]: ($) => choice(
+      typeElementInExpression($.array_type),
+      typeElementInExpression($.implicit_length_array_type),
+      typeElementInExpression($.slice_type),
+      typeElementInExpression($.map_type),
+      typeElementInExpression($.channel_type),
+      typeElementInExpression($.function_type),
       typeElementInExpression($.struct_type),
       typeElementInExpression($.interface_type),
       $.int_literal,
@@ -279,7 +275,7 @@ function expressionSpine(prefix) {
     ),
 
     [spineName(prefix, 'call_expression')]: ($) => prec(PREC.PRIMARY, seq(
-      field('function', spine($, prefix, '_primary_expression')),
+      field('function', spine($, prefix, '_operand_expression')),
       optional($._line_continues),
       field('arguments', $.arguments),
     )),
@@ -371,8 +367,7 @@ export default grammar({
     [$.type_parameter_declaration, $._operand_expression],
     [$.type_parameter_declaration, $._type_name, $._operand_expression],
     [$.type_switch_statement, $._header_operand_expression],
-    [$._simple_type, $._primary_expression],
-    [$._simple_type_after_name, $._primary_expression],
+    [$._simple_type, $._operand_other_than_name],
     [$._simple_type_after_name, $._operand_other_than_name],
     [$.channel_type, $.receive_channel_type],
     [$.channel_type, $.receive_channel_type_operand],
@@ -592,7 +587,12 @@ export default grammar({
       field('name', typeIdentifier($)),
     )),
 
-    generic_type: ($) => seq(field('type', $._type_name), field('type_arguments', $.type_arguments)),
+    // constraint: both parsers read `.` and `[` after a type name into the type, also where the type is an operand
+    // that a selector or an index can follow; the precedence of this rule and of `qualified_identifier` gives that
+    generic_type: ($) => prec(PREC.PRIMARY, seq(
+      field('type', $._type_name),
+      field('type_arguments', $.type_arguments),
+    )),
 
     type_arguments: ($) => seq('[', closedElementList($, $._type), ']'),
 

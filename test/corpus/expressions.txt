@@ -704,6 +704,77 @@ var c = &x.y.z{k: v}
                 element: (identifier)))))))))
 
 ================================================================================
+A selector, an index and a type assertion on a type literal
+================================================================================
+
+package p
+
+var a = []x.T.f
+var b = map[k]v[i][j]
+var c = func().f
+var d = []x.T.(T)
+
+func f() {
+	switch []x.T.(type) {
+	}
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (selector_expression
+          operand: (slice_type
+            element: (qualified_identifier
+              package: (package_identifier)
+              name: (type_identifier)))
+          field: (field_identifier)))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (index_expression
+          operand: (map_type
+            key: (type_identifier)
+            element: (generic_type
+              type: (type_identifier)
+              type_arguments: (type_arguments
+                (type_identifier))))
+          index: (identifier)))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (selector_expression
+          operand: (function_type
+            parameters: (parameters))
+          field: (field_identifier)))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (type_assertion_expression
+          operand: (slice_type
+            element: (qualified_identifier
+              package: (package_identifier)
+              name: (type_identifier)))
+          type: (type_identifier)))))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameters)
+    body: (block
+      (type_switch_statement
+        operand: (slice_type
+          element: (qualified_identifier
+            package: (package_identifier)
+            name: (type_identifier)))))))
+
+================================================================================
 The new builtin with an expression operand
 ================================================================================
 
