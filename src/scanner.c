@@ -25,7 +25,6 @@ enum {
   NOT_A_DIRECTIVE = DIRECTIVE_PREFIX_LENGTH + 1,
   MAX_LINE_OR_COLUMN = 1 << 30,
   MAX_WORD_LENGTH = 9,
-  MAX_NESTING = 16,
 };
 
 static void advance(TSLexer *lexer) { lexer->advance(lexer, false); }
@@ -241,8 +240,13 @@ static bool skip_white_space_and_comments(TSLexer *lexer, bool *passed_division_
   }
 }
 
-static bool starts_type_literal(const char *word) {
+enum WordKind { NO_WORD, NAME_WORD, NUMBER_WORD, CHAN_WORD, FUNC_WORD, INTERFACE_WORD, MAP_WORD, STRUCT_WORD };
+
+static bool starts_type_literal(enum WordKind word) { return word >= CHAN_WORD; }
+
+static enum WordKind type_literal_keyword(const char *word) {
   static const char *const keywords[] = {"chan", "func", "interface", "map", "struct"};
+  static const enum WordKind kinds[] = {CHAN_WORD, FUNC_WORD, INTERFACE_WORD, MAP_WORD, STRUCT_WORD};
   for (unsigned i = 0; i < sizeof(keywords) / sizeof(keywords[0]); i++) {
     const char *keyword = keywords[i];
     unsigned at = 0;
@@ -250,192 +254,475 @@ static bool starts_type_literal(const char *word) {
       at++;
     }
     if (word[at] == keyword[at]) {
+      return kinds[i];
+    }
+  }
+  return NAME_WORD;
+}
+
+// Reads an identifier, a keyword, or a number literal with its radix point and the sign of its exponent.
+static enum WordKind read_word(TSLexer *lexer) {
+  char word[MAX_WORD_LENGTH + 1];
+  unsigned length = 0;
+  bool is_number = is_digit(lexer->lookahead);
+  bool is_hexadecimal = false;
+  bool has_radix_point = false;
+  int32_t previous = 0;
+  while (!lexer->eof(lexer)) {
+    int32_t c = lexer->lookahead;
+    bool is_exponent_mark = is_hexadecimal ? previous == 'p' || previous == 'P' : previous == 'e' || previous == 'E';
+    bool is_exponent_sign = is_number && is_exponent_mark && (c == '+' || c == '-');
+    bool is_radix_point = is_number && !has_radix_point && c == '.';
+    if (!is_word_character(c) && !is_exponent_sign && !is_radix_point) {
+      break;
+    }
+    is_hexadecimal = is_hexadecimal || (is_number && length == 1 && (c == 'x' || c == 'X'));
+    has_radix_point = has_radix_point || is_radix_point;
+    if (length < MAX_WORD_LENGTH) {
+      word[length] = c < 0x80 ? (char)c : '?';
+    }
+    length++;
+    previous = c;
+    advance(lexer);
+  }
+  if (is_number) {
+    return NUMBER_WORD;
+  }
+  if (length > MAX_WORD_LENGTH) {
+    return NAME_WORD;
+  }
+  word[length] = 0;
+  return type_literal_keyword(word);
+}
+
+// constraint: the lexer shows one character, so the scan knows that a `/` or a `<` starts a binary operator only
+// after it has passed that character; `passed_operator_start` holds it until `read_binary_operator` takes it
+typedef struct {
+  TSLexer *lexer;
+  int32_t passed_operator_start;
+} TokenReader;
+
+// Skips white space and comments. Returns the first character of the next token, and 0 where the text ends or a
+// general comment has no end.
+static int32_t next_token_start(TokenReader *reader) {
+  if (reader->passed_operator_start != 0) {
+    return reader->passed_operator_start;
+  }
+  bool passed_division_operator;
+  if (!skip_white_space_and_comments(reader->lexer, &passed_division_operator)) {
+    return 0;
+  }
+  if (passed_division_operator) {
+    reader->passed_operator_start = '/';
+    return '/';
+  }
+  return reader->lexer->eof(reader->lexer) ? 0 : reader->lexer->lookahead;
+}
+
+// The lexer stands on the quote. Returns false for a literal without an end.
+static bool skip_string_or_rune(TSLexer *lexer) {
+  int32_t quote = lexer->lookahead;
+  advance(lexer);
+  while (!lexer->eof(lexer)) {
+    int32_t c = lexer->lookahead;
+    advance(lexer);
+    if (c == quote) {
       return true;
+    }
+    if (quote != '`' && c == '\n') {
+      return false;
+    }
+    if (quote != '`' && c == '\\' && !lexer->eof(lexer)) {
+      advance(lexer);
     }
   }
   return false;
 }
 
-// Reads a word, and tells whether it is a keyword that starts a type literal.
-static bool read_word_that_starts_type_literal(TSLexer *lexer) {
-  char word[MAX_WORD_LENGTH + 1];
-  unsigned length = 0;
-  while (!lexer->eof(lexer) && is_word_character(lexer->lookahead)) {
-    if (length < MAX_WORD_LENGTH) {
-      word[length] = lexer->lookahead < 0x80 ? (char)lexer->lookahead : '?';
+// The lexer stands on an opening bracket. Skips the text to the end of its closing bracket.
+static bool skip_brackets(TokenReader *reader) {
+  unsigned depth = 0;
+  for (;;) {
+    int32_t c = next_token_start(reader);
+    if (reader->passed_operator_start != 0) {
+      reader->passed_operator_start = 0;
+      continue;
     }
-    length++;
-    advance(lexer);
+    switch (c) {
+      case 0:
+        return false;
+      case '"':
+      case '`':
+      case '\'':
+        if (!skip_string_or_rune(reader->lexer)) {
+          return false;
+        }
+        continue;
+      case '(':
+      case '[':
+      case '{':
+        depth++;
+        break;
+      case ')':
+      case ']':
+      case '}':
+        depth--;
+        break;
+      default:
+        break;
+    }
+    advance(reader->lexer);
+    if (depth == 0) {
+      return true;
+    }
   }
-  if (length > MAX_WORD_LENGTH) {
+}
+
+// The lexer stands on `<`. Returns false for a text other than `<-`.
+static bool skip_arrow(TSLexer *lexer) {
+  advance(lexer);
+  if (lexer->lookahead != '-') {
     return false;
   }
-  word[length] = 0;
-  return starts_type_literal(word);
+  advance(lexer);
+  return true;
+}
+
+// Skips a type, which starts with `first` when the caller has read its first word. Returns false for a text that
+// is no type.
+static bool skip_type(TokenReader *reader, enum WordKind first) {
+  TSLexer *lexer = reader->lexer;
+  enum WordKind word = first;
+  for (;;) {
+    if (word == NO_WORD) {
+      int32_t c = next_token_start(reader);
+      if (c == '(') {
+        return skip_brackets(reader);
+      }
+      if (c == '*') {
+        advance(lexer);
+        continue;
+      }
+      if (c == '[') {
+        if (!skip_brackets(reader)) {
+          return false;
+        }
+        continue;
+      }
+      if (c == '<') {
+        if (!skip_arrow(lexer) || !is_word_character(next_token_start(reader)) || read_word(lexer) != CHAN_WORD) {
+          return false;
+        }
+        word = CHAN_WORD;
+      } else if (is_word_character(c)) {
+        word = read_word(lexer);
+      } else {
+        return false;
+      }
+    }
+    switch (word) {
+      case MAP_WORD:
+        if (next_token_start(reader) != '[' || !skip_brackets(reader)) {
+          return false;
+        }
+        word = NO_WORD;
+        continue;
+      case CHAN_WORD:
+        if (next_token_start(reader) == '<' && !skip_arrow(lexer)) {
+          return false;
+        }
+        word = NO_WORD;
+        continue;
+      case FUNC_WORD: {
+        if (next_token_start(reader) != '(' || !skip_brackets(reader)) {
+          return false;
+        }
+        int32_t result = next_token_start(reader);
+        if (result == '(') {
+          return skip_brackets(reader);
+        }
+        if (result == '*' || result == '[' || is_word_character(result)) {
+          word = NO_WORD;
+          continue;
+        }
+        if (result != '<') {
+          return true;
+        }
+        advance(lexer);
+        if (lexer->lookahead != '-') {
+          reader->passed_operator_start = '<';
+          return true;
+        }
+        advance(lexer);
+        if (!is_word_character(next_token_start(reader)) || read_word(lexer) != CHAN_WORD) {
+          return false;
+        }
+        word = CHAN_WORD;
+        continue;
+      }
+      case STRUCT_WORD:
+      case INTERFACE_WORD:
+        return next_token_start(reader) == '{' && skip_brackets(reader);
+      case NAME_WORD:
+        if (next_token_start(reader) == '.') {
+          advance(lexer);
+          if (!is_word_character(next_token_start(reader)) || read_word(lexer) != NAME_WORD) {
+            return false;
+          }
+        }
+        return next_token_start(reader) != '[' || skip_brackets(reader);
+      default:
+        return false;
+    }
+  }
 }
 
 enum BracketKind { UNDECIDED_BRACKET, TYPE_PARAMETER_BRACKET, ARRAY_LENGTH_BRACKET };
 
-typedef struct {
-  bool shows_type_element;
-  bool has_unary_operator;
-} Nesting;
+enum OperatorKind { NO_BINARY_OPERATOR, UNION_OPERATOR, MULTIPLICATIVE_OPERATOR, OTHER_BINARY_OPERATOR };
 
-// Reads one binary operator. Returns false for a text that is no binary operator of an expression.
-static bool read_binary_operator(TSLexer *lexer) {
-  int32_t first = lexer->lookahead;
-  advance(lexer);
+static enum OperatorKind read_binary_operator(TokenReader *reader) {
+  TSLexer *lexer = reader->lexer;
+  int32_t first = reader->passed_operator_start;
+  reader->passed_operator_start = 0;
+  if (first == 0) {
+    first = lexer->lookahead;
+    advance(lexer);
+  }
   int32_t second = lexer->lookahead;
   switch (first) {
+    case '*':
+    case '/':
+    case '%':
+      return MULTIPLICATIVE_OPERATOR;
     case '+':
     case '-':
-    case '*':
-    case '%':
     case '^':
-      return true;
+      return OTHER_BINARY_OPERATOR;
     case '&':
-      if (second == '^' || second == '&') {
+      if (second == '&') {
+        advance(lexer);
+        return OTHER_BINARY_OPERATOR;
+      }
+      if (second == '^') {
         advance(lexer);
       }
-      return true;
+      return MULTIPLICATIVE_OPERATOR;
     case '|':
       if (second == '|') {
         advance(lexer);
+        return OTHER_BINARY_OPERATOR;
       }
-      return true;
+      return UNION_OPERATOR;
     case '<':
     case '>':
-      if (second == '-') {
-        return false;
+      if (first == '<' && second == '-') {
+        return NO_BINARY_OPERATOR;
       }
-      if (second == first || second == '=') {
+      if (second == first) {
+        advance(lexer);
+        return MULTIPLICATIVE_OPERATOR;
+      }
+      if (second == '=') {
         advance(lexer);
       }
-      return true;
+      return OTHER_BINARY_OPERATOR;
     case '=':
     case '!':
       if (second != '=') {
-        return false;
+        return NO_BINARY_OPERATOR;
       }
       advance(lexer);
-      return true;
+      return OTHER_BINARY_OPERATOR;
     default:
-      return false;
+      return NO_BINARY_OPERATOR;
   }
 }
 
 // constraint: both parsers read the bracket after the name of a type declaration as an expression when it starts
-// with a name, and take a type parameter list where the expression splits into a name and a constraint: `P *C`
-// and `P (C)` split only before a comma, or when a term of the expression is a type literal or a `~` term that
-// stands under no operator but `|` and parentheses (extractName and isTypeElem of go/parser); a `[` after the name
-// starts a constraint in every text
-// The lexer stands on the `[`. The scan settles only the texts that hold no such term and no comma.
+// with a name, and take a type parameter list where the expression splits into a name and a constraint
+// (`extractName` of go/parser): `P *x | y` and `P (x) | y`, with terms that bind tighter than `|`, split before a
+// comma, or when a term holds a type element (`isTypeElem`), which is a type literal that is a whole operand, or a
+// `~` term, under no operator but binary ones and parentheses; a `[` after the name starts a constraint in every text
+// The lexer stands on the `[`. The scan settles the texts that end at the `]` with no comma outside parentheses.
+// `depth` counts the open parentheses where a type element can stand; the scan skips every other bracket pair
+// whole. `type_element_level` is `depth + 1` of the outermost such parentheses that hold a type element, and 0
+// when none holds one.
 static enum BracketKind classify_type_declaration_bracket(TSLexer *lexer) {
+  TokenReader reader = {.lexer = lexer, .passed_operator_start = 0};
   advance(lexer);
-  bool passed_division_operator;
-  if (!skip_white_space_and_comments(lexer, &passed_division_operator) || passed_division_operator ||
-      !is_word_character(lexer->lookahead) || is_digit(lexer->lookahead) ||
-      read_word_that_starts_type_literal(lexer)) {
+  if (!is_word_character(next_token_start(&reader)) || read_word(lexer) != NAME_WORD) {
     return UNDECIDED_BRACKET;
   }
-  if (!skip_white_space_and_comments(lexer, &passed_division_operator) || passed_division_operator) {
-    return UNDECIDED_BRACKET;
-  }
-  if (lexer->lookahead == '[') {
+  int32_t c = next_token_start(&reader);
+  if (c == '[') {
     return TYPE_PARAMETER_BRACKET;
   }
-  if (lexer->lookahead != '*' && lexer->lookahead != '(') {
+  if (c != '*' && c != '(') {
     return UNDECIDED_BRACKET;
   }
-  Nesting levels[MAX_NESTING] = {{.shows_type_element = true, .has_unary_operator = false}};
-  unsigned depth = 0;
-  if (lexer->lookahead == '(') {
-    depth = 1;
-    levels[1] = levels[0];
-  }
   advance(lexer);
+  unsigned depth = c == '(' ? 1 : 0;
+  unsigned type_element_level = 0;
+  bool has_unary_operator = false;
+  bool call_is_open = c == '(';
+  bool expects_argument = call_is_open;
+  unsigned argument_count = 0;
+  bool call_has_just_closed = false;
+  bool splits_into_name_and_constraint = true;
+  bool passed_union = false;
   bool expects_operand = true;
+  bool operand_can_be_type_element = false;
   for (;;) {
-    Nesting *level = &levels[depth];
-    if (!skip_white_space_and_comments(lexer, &passed_division_operator) || lexer->eof(lexer)) {
+    c = next_token_start(&reader);
+    if (c == 0) {
       return UNDECIDED_BRACKET;
     }
-    if (passed_division_operator) {
-      if (expects_operand) {
-        return UNDECIDED_BRACKET;
-      }
-      level->has_unary_operator = false;
-      expects_operand = true;
-      continue;
+    bool continues_operand = !expects_operand && (c == '(' || c == '[' || c == '{' || c == '.');
+    bool is_type_element = (operand_can_be_type_element && !continues_operand) ||
+                           (expects_operand && c == '~' && !has_unary_operator);
+    if (is_type_element && (type_element_level == 0 || type_element_level > depth + 1)) {
+      type_element_level = depth + 1;
     }
-    int32_t c = lexer->lookahead;
-    bool shows_type_element = expects_operand && level->shows_type_element && !level->has_unary_operator;
+    operand_can_be_type_element = false;
+    if (call_has_just_closed && continues_operand) {
+      splits_into_name_and_constraint = false;
+    }
+    call_has_just_closed = false;
+    if (expects_operand && expects_argument && c != ')') {
+      argument_count++;
+      expects_argument = false;
+    }
     if (is_word_character(c)) {
-      bool is_number = is_digit(c);
-      if (read_word_that_starts_type_literal(lexer) && !is_number && shows_type_element) {
-        return UNDECIDED_BRACKET;
+      enum WordKind word = read_word(lexer);
+      if (expects_operand && starts_type_literal(word)) {
+        if (!skip_type(&reader, word)) {
+          return UNDECIDED_BRACKET;
+        }
+        operand_can_be_type_element = !has_unary_operator;
       }
       expects_operand = false;
       continue;
     }
-    switch (c) {
-      case '(':
-      case '[':
-      case '{':
-        if ((c == '[' && shows_type_element) || depth + 1 == MAX_NESTING) {
-          return UNDECIDED_BRACKET;
-        }
-        depth++;
-        levels[depth] = (Nesting){.shows_type_element = c == '(' && shows_type_element, .has_unary_operator = false};
-        advance(lexer);
-        expects_operand = true;
-        continue;
-      case ')':
-      case ']':
-      case '}':
-        if (depth == 0) {
-          return c == ']' ? ARRAY_LENGTH_BRACKET : UNDECIDED_BRACKET;
-        }
-        depth--;
-        advance(lexer);
-        expects_operand = false;
-        continue;
-      case ',':
-        if (depth == 0) {
-          return UNDECIDED_BRACKET;
-        }
-        advance(lexer);
-        level->has_unary_operator = false;
-        expects_operand = true;
-        continue;
-      case '.':
-        advance(lexer);
-        continue;
-      default:
-        break;
-    }
-    if (!expects_operand) {
-      if (!read_binary_operator(lexer)) {
-        return UNDECIDED_BRACKET;
+    if (c == '.') {
+      advance(lexer);
+      if (lexer->lookahead == '.') {
+        splits_into_name_and_constraint = false;
       }
-      level->has_unary_operator = false;
-      expects_operand = true;
       continue;
     }
-    if (shows_type_element && (c == '~' || c == '<')) {
-      return UNDECIDED_BRACKET;
+    if (continues_operand) {
+      if (!skip_brackets(&reader)) {
+        return UNDECIDED_BRACKET;
+      }
+      continue;
     }
-    if (c != '+' && c != '-' && c != '!' && c != '^' && c != '*' && c != '&' && c != '~' && c != '<') {
-      return UNDECIDED_BRACKET;
+    if (c == ')') {
+      bool closes_call = depth == 1 && call_is_open;
+      if (depth == 0 || (expects_operand && !(closes_call && expects_argument))) {
+        return UNDECIDED_BRACKET;
+      }
+      operand_can_be_type_element = type_element_level == depth + 1;
+      if (operand_can_be_type_element) {
+        type_element_level = 0;
+      }
+      depth--;
+      advance(lexer);
+      if (closes_call) {
+        call_is_open = false;
+        expects_argument = false;
+        call_has_just_closed = true;
+        splits_into_name_and_constraint = splits_into_name_and_constraint && argument_count == 1;
+      }
+      expects_operand = false;
+      continue;
     }
-    advance(lexer);
-    if (c == '<') {
-      if (lexer->lookahead != '-') {
+    if (c == ',') {
+      if (expects_operand || depth != 1 || !call_is_open) {
         return UNDECIDED_BRACKET;
       }
       advance(lexer);
+      has_unary_operator = false;
+      expects_operand = true;
+      expects_argument = true;
+      continue;
     }
-    level->has_unary_operator = true;
+    if (!expects_operand) {
+      if (c == ']') {
+        if (depth != 0) {
+          return UNDECIDED_BRACKET;
+        }
+        bool has_constraint = splits_into_name_and_constraint && type_element_level == 1;
+        return has_constraint ? TYPE_PARAMETER_BRACKET : ARRAY_LENGTH_BRACKET;
+      }
+      enum OperatorKind kind = read_binary_operator(&reader);
+      if (kind == NO_BINARY_OPERATOR) {
+        return UNDECIDED_BRACKET;
+      }
+      if (depth == 0 && kind == UNION_OPERATOR) {
+        passed_union = true;
+      } else if (depth == 0 && (kind == OTHER_BINARY_OPERATOR || !passed_union)) {
+        splits_into_name_and_constraint = false;
+      }
+      has_unary_operator = false;
+      expects_operand = true;
+      continue;
+    }
+    switch (c) {
+      case '"':
+      case '`':
+      case '\'':
+        if (!skip_string_or_rune(lexer)) {
+          return UNDECIDED_BRACKET;
+        }
+        expects_operand = false;
+        continue;
+      case '(':
+        if (has_unary_operator) {
+          if (!skip_brackets(&reader)) {
+            return UNDECIDED_BRACKET;
+          }
+          expects_operand = false;
+          continue;
+        }
+        depth++;
+        advance(lexer);
+        continue;
+      case '[':
+        if (!skip_type(&reader, NO_WORD)) {
+          return UNDECIDED_BRACKET;
+        }
+        operand_can_be_type_element = !has_unary_operator;
+        expects_operand = false;
+        continue;
+      case '<':
+        if (!skip_arrow(lexer)) {
+          return UNDECIDED_BRACKET;
+        }
+        if (is_word_character(next_token_start(&reader))) {
+          enum WordKind word = read_word(lexer);
+          if (starts_type_literal(word) && !skip_type(&reader, word)) {
+            return UNDECIDED_BRACKET;
+          }
+          operand_can_be_type_element = word == CHAN_WORD && !has_unary_operator;
+          expects_operand = false;
+          continue;
+        }
+        has_unary_operator = true;
+        continue;
+      case '+':
+      case '-':
+      case '!':
+      case '^':
+      case '*':
+      case '&':
+      case '~':
+        advance(lexer);
+        has_unary_operator = true;
+        continue;
+      default:
+        return UNDECIDED_BRACKET;
+    }
   }
 }
 
