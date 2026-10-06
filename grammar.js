@@ -114,7 +114,7 @@ function expressionSpine(prefix) {
       spine($, prefix, 'unary_expression'),
       spine($, prefix, 'binary_expression'),
       spine($, prefix, '_primary_expression'),
-      $._receive_channel_type_operand,
+      alias($.receive_channel_type_operand, $.channel_type),
     ),
 
     [spineName(prefix, 'unary_expression')]: ($) => choice(
@@ -345,7 +345,8 @@ export default grammar({
     [$._simple_type_after_name, $._primary_expression],
     [$._simple_type_after_name, $._operand_expression],
     [$.channel_type, $.receive_channel_type],
-    [$._simple_type_after_name, $._receive_channel_type_operand],
+    [$.channel_type, $.receive_channel_type_operand],
+    [$.channel_type, $.receive_channel_type, $.receive_channel_type_operand],
     [$.receiver_parameter_declaration, $._type_name],
     [$._range_left, $.header_expression_list],
   ],
@@ -598,7 +599,10 @@ export default grammar({
 
     // constraint: `<-chan T(x)` is a receive from the conversion `chan T(x)` (spec, Conversions), so the receive
     // channel type is an operand that takes no arguments
-    _receive_channel_type_operand: ($) => typeElementInExpression(alias($.receive_channel_type, $.channel_type)),
+    receive_channel_type_operand: ($) => prec.dynamic(
+      PREC.RECEIVE_CHANNEL_TYPE + PREC.TYPE_ELEMENT_IN_EXPRESSION,
+      seq('<-', 'chan', field('element', $._type)),
+    ),
 
     function_type: ($) => prec.right(seq(
       'func',
@@ -954,13 +958,15 @@ function typeParametersOnTheLine($) {
   return seq(field('type_parameters', $.type_parameters), optional($._line_continues));
 }
 
-// constraint: go/parser reads `type T[P X]` as type parameters when X holds a type literal or `~` term (isTypeElem)
+// constraint: go/parser reads `type T[P X]` as type parameters when X holds a type literal or `~` term (isTypeElem);
+// tree-sitter removes a reduction of one child to a hidden rule from the parse table, with its dynamic precedence,
+// and the alias of a rule to its own name keeps that reduction
 /**
  * @param {RuleOrLiteral} rule
  * @returns {PrecRule}
  */
 function typeElementInExpression(rule) {
-  return prec.dynamic(PREC.TYPE_ELEMENT_IN_EXPRESSION, rule);
+  return prec.dynamic(PREC.TYPE_ELEMENT_IN_EXPRESSION, rule.type === 'SYMBOL' ? alias(rule, rule) : rule);
 }
 
 // constraint: Go omits the semicolon only before a closing brace, so a statement without a terminator and a label
