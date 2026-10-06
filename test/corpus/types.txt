@@ -205,6 +205,51 @@ func g[P ~[...]int | [...]string](p ...[...]int)
           element: (type_identifier))))))
 
 ================================================================================
+An arrow before a channel conversion is a receive operation
+================================================================================
+
+package p
+
+var a = <-chan int(c)
+var b = (<-chan int)(c)
+var d = make(<-chan int)
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (unary_expression
+          operand: (call_expression
+            function: (channel_type
+              element: (type_identifier))
+            arguments: (arguments
+              (identifier)))))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (call_expression
+          function: (parenthesized_expression
+            (channel_type
+              element: (type_identifier)))
+          arguments: (arguments
+            (identifier))))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (call_expression
+          function: (identifier)
+          arguments: (arguments
+            (channel_type
+              element: (type_identifier))))))))
+
+================================================================================
 Qualified, generic and parenthesized types
 ================================================================================
 

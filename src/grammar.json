@@ -1785,6 +1785,15 @@
           "name": "channel_type"
         },
         {
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "receive_channel_type"
+          },
+          "named": true,
+          "value": "channel_type"
+        },
+        {
           "type": "SYMBOL",
           "name": "function_type"
         },
@@ -2157,33 +2166,46 @@
               }
             }
           ]
-        },
-        {
-          "type": "PREC_DYNAMIC",
-          "value": -1,
-          "content": {
-            "type": "SEQ",
-            "members": [
-              {
-                "type": "STRING",
-                "value": "<-"
-              },
-              {
-                "type": "STRING",
-                "value": "chan"
-              },
-              {
-                "type": "FIELD",
-                "name": "element",
-                "content": {
-                  "type": "SYMBOL",
-                  "name": "_type"
-                }
-              }
-            ]
-          }
         }
       ]
+    },
+    "receive_channel_type": {
+      "type": "PREC_DYNAMIC",
+      "value": -1,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "STRING",
+            "value": "<-"
+          },
+          {
+            "type": "STRING",
+            "value": "chan"
+          },
+          {
+            "type": "FIELD",
+            "name": "element",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_type"
+            }
+          }
+        ]
+      }
+    },
+    "_receive_channel_type_operand": {
+      "type": "PREC_DYNAMIC",
+      "value": -2,
+      "content": {
+        "type": "ALIAS",
+        "content": {
+          "type": "SYMBOL",
+          "name": "receive_channel_type"
+        },
+        "named": true,
+        "value": "channel_type"
+      }
     },
     "function_type": {
       "type": "PREC_RIGHT",
@@ -4298,6 +4320,10 @@
         {
           "type": "SYMBOL",
           "name": "_primary_expression"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_receive_channel_type_operand"
         }
       ]
     },
@@ -5684,6 +5710,10 @@
         {
           "type": "SYMBOL",
           "name": "_header_primary_expression"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_receive_channel_type_operand"
         }
       ]
     },
@@ -7651,7 +7681,12 @@
       "_operand_expression"
     ],
     [
-      "channel_type"
+      "channel_type",
+      "receive_channel_type"
+    ],
+    [
+      "_simple_type_after_name",
+      "_receive_channel_type_operand"
     ],
     [
       "receiver_parameter_declaration",

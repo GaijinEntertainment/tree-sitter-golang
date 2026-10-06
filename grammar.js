@@ -114,6 +114,7 @@ function expressionSpine(prefix) {
       spine($, prefix, 'unary_expression'),
       spine($, prefix, 'binary_expression'),
       spine($, prefix, '_primary_expression'),
+      $._receive_channel_type_operand,
     ),
 
     [spineName(prefix, 'unary_expression')]: ($) => choice(
@@ -340,7 +341,8 @@ export default grammar({
     [$._simple_type, $._primary_expression],
     [$._simple_type_after_name, $._primary_expression],
     [$._simple_type_after_name, $._operand_expression],
-    [$.channel_type],
+    [$.channel_type, $.receive_channel_type],
+    [$._simple_type_after_name, $._receive_channel_type_operand],
     [$.receiver_parameter_declaration, $._type_name],
     [$._range_left, $.header_expression_list],
   ],
@@ -536,6 +538,7 @@ export default grammar({
       $.slice_type,
       $.map_type,
       $.channel_type,
+      alias($.receive_channel_type, $.channel_type),
       $.function_type,
       $.struct_type,
       $.interface_type,
@@ -583,8 +586,16 @@ export default grammar({
     channel_type: ($) => choice(
       seq('chan', field('element', $._type)),
       seq('chan', '<-', field('element', $._type)),
-      prec.dynamic(PREC.RECEIVE_CHANNEL_TYPE, seq('<-', 'chan', field('element', $._type))),
     ),
+
+    receive_channel_type: ($) => prec.dynamic(
+      PREC.RECEIVE_CHANNEL_TYPE,
+      seq('<-', 'chan', field('element', $._type)),
+    ),
+
+    // constraint: `<-chan T(x)` is a receive from the conversion `chan T(x)` (spec, Conversions), so the receive
+    // channel type is an operand that takes no arguments
+    _receive_channel_type_operand: ($) => typeElementInExpression(alias($.receive_channel_type, $.channel_type)),
 
     function_type: ($) => prec.right(seq(
       'func',
