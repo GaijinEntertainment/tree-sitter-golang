@@ -836,7 +836,10 @@ export default grammar({
 
     float_literal: (_) => token(new RegExp(FLOAT_LITERAL)),
 
-    imaginary_literal: (_) => token(new RegExp(`(${DECIMAL_DIGITS}|${INT_LITERAL}|${FLOAT_LITERAL})i`)),
+    // constraint: both parsers check the digits against the base for an integer literal only, so `0b9i` is valid
+    imaginary_literal: (_) => token(new RegExp(
+      `(${DECIMAL_DIGITS}|${INT_LITERAL}|0[bBoO](_?[0-9])+|${FLOAT_LITERAL})i`,
+    )),
 
     identifier: (_) => /[_\p{L}][_\p{L}\p{Nd}]*/,
 

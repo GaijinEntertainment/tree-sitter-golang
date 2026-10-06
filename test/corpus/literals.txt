@@ -112,12 +112,24 @@ var a = 0i
 var b = 0123i
 var c = 0x1p-2i
 var d = 1.e+0i
+var e = 0b9i
+var f = 0o_8_9i
 
 --------------------------------------------------------------------------------
 
 (source_file
   (package_clause
     name: (package_identifier))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (imaginary_literal))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (imaginary_literal))))
   (var_declaration
     (var_spec
       name: (identifier)
