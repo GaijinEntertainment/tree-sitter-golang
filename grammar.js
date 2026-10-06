@@ -318,6 +318,8 @@ export default grammar({
     $._line_continues,
     $._statement_start,
     $._never_returned,
+    $._type_parameters_follow,
+    $._no_type_parameters,
     $.comment,
     $._interpreted_string_content,
     $._raw_string_content,
@@ -409,15 +411,13 @@ export default grammar({
 
     type_definition: ($) => seq(
       field('name', typeIdentifier($)),
-      $._same_line,
-      optional(typeParametersOnTheLine($)),
+      typeParametersAfterName($),
       field('type', $._type),
     ),
 
     alias_declaration: ($) => seq(
       field('name', typeIdentifier($)),
-      $._same_line,
-      optional(typeParametersOnTheLine($)),
+      typeParametersAfterName($),
       '=',
       field('type', $._type),
     ),
@@ -947,6 +947,21 @@ function labelName($) {
  */
 function wholeToken(tokens) {
   return choice(...tokens.map((token) => alias(token, '+')));
+}
+
+// constraint: both parsers settle from the text of a `[` after the name of a type declaration whether it starts a type
+// parameter list or an array type, before they see the rest of the declaration; the scanner gives
+// `_type_parameters_follow` or `_no_type_parameters` in place of `_same_line` where that text settles it too
+/**
+ * @param {GrammarSymbols<string>} $
+ * @returns {ChoiceRule}
+ */
+function typeParametersAfterName($) {
+  return choice(
+    seq($._same_line, optional(typeParametersOnTheLine($))),
+    seq($._type_parameters_follow, typeParametersOnTheLine($)),
+    $._no_type_parameters,
+  );
 }
 
 // constraint: the scanner never returns `_line_continues`; where it is valid, a line end needs an automatic semicolon

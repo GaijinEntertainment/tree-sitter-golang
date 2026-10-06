@@ -90,6 +90,13 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
 - Dynamic precedence settles the parses that both stay valid: a type parameter list against an array length (as
   `isTypeElem` in `go/parser`), `<-` before `chan` (as the re-association in `go/parser`), and an expression switch
   over `.(type)`.
+- Tree-sitter removes a reduction of one child to a hidden rule from the parse table, and the dynamic precedence of
+  that reduction with it, when the state has no other action. `typeElementInExpression` aliases a rule to its own name
+  to keep the reduction. An alias that every use of a rule has does not keep it.
+- Both parsers settle the `[` after the name of a type declaration before they read the rest of the declaration, so
+  `type A[P *C] = T` is an array type with a syntax error. Dynamic precedence cannot give that: only one parse stays
+  valid. The scanner reads the bracket text and gives `_type_parameters_follow` or `_no_type_parameters` where the
+  text settles the kind, and `_same_line` where a type literal or a comma leaves it to the two parses.
 - In an `index_expression` with more than one `index`, the first is an expression and the others are types, as both
   parsers read them. `queries/highlights.scm` captures an identifier in that first position as a type.
 - Every keyword is in `KEYWORDS`, the reserved word set; an identifier never matches one.
