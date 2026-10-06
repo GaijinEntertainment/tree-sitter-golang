@@ -341,7 +341,7 @@ export default grammar({
     const_declaration: ($) => seq('const', choice($.const_spec, seq('(', terminated($, $.const_spec), ')'))),
 
     const_spec: ($) => seq(
-      elementList($, field('name', $.identifier)),
+      commaSep1(field('name', $.identifier)),
       optional(field('type', $._type)),
       optional(seq('=', field('value', $.expression_list))),
     ),

@@ -350,6 +350,47 @@ import (
         (string_content)))))
 
 ================================================================================
+A constant name before a closing bracket
+================================================================================
+
+package p
+
+const (
+	a = iota
+	b)
+
+func f() { const c = 1; const ( d = 2; e ) }
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (const_declaration
+    (const_spec
+      name: (identifier)
+      value: (expression_list
+        (identifier)))
+    (const_spec
+      name: (identifier)))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameters)
+    body: (block
+      (const_declaration
+        (const_spec
+          name: (identifier)
+          value: (expression_list
+            (int_literal))))
+      (const_declaration
+        (const_spec
+          name: (identifier)
+          value: (expression_list
+            (int_literal)))
+        (const_spec
+          name: (identifier))))))
+
+================================================================================
 A type switch guard before a general comment with a newline is the initializer
 ================================================================================
 

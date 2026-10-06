@@ -327,10 +327,6 @@
                 "type": "SEQ",
                 "members": [
                   {
-                    "type": "SYMBOL",
-                    "name": "_element_end"
-                  },
-                  {
                     "type": "STRING",
                     "value": ","
                   },

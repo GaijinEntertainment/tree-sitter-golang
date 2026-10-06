@@ -71,6 +71,8 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
   `return` or `fallthrough`. A new position after such a token where no terminator is valid takes `_same_line`,
   `_brace_on_same_line`, `_element_end` or `_colon_on_same_line`, or an optional `_line_continues` where the parser
   must not commit to the next token. The `_line_continues` of a call expression covers the end of every operand.
+- `_element_end` stands before `,` and before a closing bracket, and the parser then needs the rest of the list. A
+  list that a closing bracket can follow outside the list rule, such as the names of a `const_spec`, takes plain commas.
 - An empty statement, the empty init statement and condition of a `for` clause, and a label without a statement end with
   an explicit `;` only, because Go inserts no semicolon after `;`, `{` or `:`.
 - The generator copies the fields of an aliased hidden rule into the parent node, and `child_by_field_name` on the
