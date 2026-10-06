@@ -4642,8 +4642,21 @@
                   "type": "FIELD",
                   "name": "operand",
                   "content": {
-                    "type": "SYMBOL",
-                    "name": "_expression"
+                    "type": "CHOICE",
+                    "members": [
+                      {
+                        "type": "SYMBOL",
+                        "name": "unary_expression"
+                      },
+                      {
+                        "type": "SYMBOL",
+                        "name": "identifier"
+                      },
+                      {
+                        "type": "SYMBOL",
+                        "name": "_operand_other_than_name_and_channel_type"
+                      }
+                    ]
                   }
                 }
               ]
@@ -5076,6 +5089,28 @@
             "type": "ALIAS",
             "content": {
               "type": "SYMBOL",
+              "name": "channel_type"
+            },
+            "named": true,
+            "value": "channel_type"
+          }
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_operand_other_than_name_and_channel_type"
+        }
+      ]
+    },
+    "_operand_other_than_name_and_channel_type": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "PREC_DYNAMIC",
+          "value": -2,
+          "content": {
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
               "name": "array_type"
             },
             "named": true,
@@ -5119,19 +5154,6 @@
             },
             "named": true,
             "value": "map_type"
-          }
-        },
-        {
-          "type": "PREC_DYNAMIC",
-          "value": -2,
-          "content": {
-            "type": "ALIAS",
-            "content": {
-              "type": "SYMBOL",
-              "name": "channel_type"
-            },
-            "named": true,
-            "value": "channel_type"
           }
         },
         {
@@ -6147,8 +6169,26 @@
                   "type": "FIELD",
                   "name": "operand",
                   "content": {
-                    "type": "SYMBOL",
-                    "name": "_header_expression"
+                    "type": "CHOICE",
+                    "members": [
+                      {
+                        "type": "ALIAS",
+                        "content": {
+                          "type": "SYMBOL",
+                          "name": "header_unary_expression"
+                        },
+                        "named": true,
+                        "value": "unary_expression"
+                      },
+                      {
+                        "type": "SYMBOL",
+                        "name": "identifier"
+                      },
+                      {
+                        "type": "SYMBOL",
+                        "name": "_header_operand_other_than_name_and_channel_type"
+                      }
+                    ]
                   }
                 }
               ]
@@ -6581,6 +6621,28 @@
             "type": "ALIAS",
             "content": {
               "type": "SYMBOL",
+              "name": "channel_type"
+            },
+            "named": true,
+            "value": "channel_type"
+          }
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_header_operand_other_than_name_and_channel_type"
+        }
+      ]
+    },
+    "_header_operand_other_than_name_and_channel_type": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "PREC_DYNAMIC",
+          "value": -2,
+          "content": {
+            "type": "ALIAS",
+            "content": {
+              "type": "SYMBOL",
               "name": "array_type"
             },
             "named": true,
@@ -6624,19 +6686,6 @@
             },
             "named": true,
             "value": "map_type"
-          }
-        },
-        {
-          "type": "PREC_DYNAMIC",
-          "value": -2,
-          "content": {
-            "type": "ALIAS",
-            "content": {
-              "type": "SYMBOL",
-              "name": "channel_type"
-            },
-            "named": true,
-            "value": "channel_type"
           }
         },
         {
@@ -8101,22 +8150,21 @@
     ],
     [
       "_simple_type",
-      "_operand_other_than_name"
+      "_operand_other_than_name_and_channel_type"
     ],
     [
       "_simple_type_after_name",
       "_operand_other_than_name"
     ],
     [
+      "_simple_type_after_name",
+      "_operand_other_than_name_and_channel_type"
+    ],
+    [
       "channel_type",
       "receive_channel_type"
     ],
     [
-      "channel_type",
-      "receive_channel_type_operand"
-    ],
-    [
-      "channel_type",
       "receive_channel_type",
       "receive_channel_type_operand"
     ],

@@ -138,9 +138,15 @@ function expressionSpine(prefix) {
         field('operator', choice('+', '-', '!', '^', '*', '&')),
         field('operand', spine($, prefix, '_expression')),
       )),
+      // constraint: `<-` before a channel type belongs to the type (go/parser moves it there, or reports an error),
+      // so a receive operation takes no bare channel type as its operand
       prec.dynamic(PREC.RECEIVE_OPERATION, prec(PREC.UNARY, seq(
         field('operator', '<-'),
-        field('operand', spine($, prefix, '_expression')),
+        field('operand', choice(
+          spine($, prefix, 'unary_expression'),
+          $.identifier,
+          spine($, prefix, '_operand_other_than_name_and_channel_type'),
+        )),
       ))),
       typeElementInExpression(prec(PREC.UNARY, seq(
         field('operator', '~'),
@@ -175,11 +181,15 @@ function expressionSpine(prefix) {
     ),
 
     [spineName(prefix, '_operand_other_than_name')]: ($) => choice(
+      typeElementInExpression($.channel_type),
+      spine($, prefix, '_operand_other_than_name_and_channel_type'),
+    ),
+
+    [spineName(prefix, '_operand_other_than_name_and_channel_type')]: ($) => choice(
       typeElementInExpression($.array_type),
       typeElementInExpression($.implicit_length_array_type),
       typeElementInExpression($.slice_type),
       typeElementInExpression($.map_type),
-      typeElementInExpression($.channel_type),
       typeElementInExpression($.function_type),
       typeElementInExpression($.struct_type),
       typeElementInExpression($.interface_type),
@@ -367,11 +377,11 @@ export default grammar({
     [$.type_parameter_declaration, $._operand_expression],
     [$.type_parameter_declaration, $._type_name, $._operand_expression],
     [$.type_switch_statement, $._header_operand_expression],
-    [$._simple_type, $._operand_other_than_name],
+    [$._simple_type, $._operand_other_than_name_and_channel_type],
     [$._simple_type_after_name, $._operand_other_than_name],
+    [$._simple_type_after_name, $._operand_other_than_name_and_channel_type],
     [$.channel_type, $.receive_channel_type],
-    [$.channel_type, $.receive_channel_type_operand],
-    [$.channel_type, $.receive_channel_type, $.receive_channel_type_operand],
+    [$.receive_channel_type, $.receive_channel_type_operand],
     [$._type_name, $.generic_type_with_expression],
     [$.receiver_parameter_declaration, $._type_name, $.generic_type_with_expression],
     [$.parameter_declaration, $._type_name, $.generic_type_with_expression],

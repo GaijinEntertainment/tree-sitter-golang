@@ -310,6 +310,48 @@ func (T[8]) m() {}
     body: (block)))
 
 ================================================================================
+An arrow before a channel type belongs to the type, also through send channels
+================================================================================
+
+package p
+
+var a = <-chan<- chan int
+var b = <-(chan<- int)
+var c = <-<-chan int(d)
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (channel_type
+          element: (channel_type
+            element: (type_identifier))))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (unary_expression
+          operand: (parenthesized_expression
+            (channel_type
+              element: (type_identifier)))))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (unary_expression
+          operand: (unary_expression
+            operand: (call_expression
+              function: (channel_type
+                element: (type_identifier))
+              arguments: (arguments
+                (identifier)))))))))
+
+================================================================================
 Qualified, generic and parenthesized types
 ================================================================================
 
