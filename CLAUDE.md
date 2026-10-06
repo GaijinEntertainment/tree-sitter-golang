@@ -104,7 +104,11 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
   (`.`) declares the exported identifiers of the package in the file block, `blank_identifier` (`_`) binds nothing,
   and `package_identifier` binds that name to the package. Everywhere else `_` is an `identifier`, as in `go/ast`.
 - Every corpus input without `:error` passes both parsers, and every `:error` input fails at least one. Check a new case
-  with both parsers before you add it.
+  with both parsers before you add it. `test/corpus/recovery.txt` is the exception: each test there holds the tree,
+  with its ERROR nodes, of an input that the parsers reject, and fixes how much of the text one error takes.
+- While the parser recovers from an error, every external token is valid, and the parser drops a token without text.
+  The scanner then gives `_automatic_semicolon` with the newline as its text, except before a line that starts with a
+  closing bracket, `,` or `.`. Without it the parser finds no statement end and puts the rest of the file into ERROR.
 - In `queries/highlights.scm`, a later pattern overrides an earlier one in both tree-sitter-highlight and Neovim. Put a
   specific pattern after the general pattern, and give each pattern one capture: tree-sitter-highlight drops every
   capture of an earlier match that shares a node with a later match.

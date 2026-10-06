@@ -484,13 +484,33 @@ static bool take_line_end(TSLexer *lexer, const bool *valid_symbols) {
   return line_must_continue && give(lexer, REJECTED_TOKEN);
 }
 
+// constraint: while the parser recovers from an error, it takes no token without text, and every external token is
+// valid, so the scan cannot tell where a semicolon belongs; a semicolon that holds the newline lets the parser
+// continue at the next statement
+static bool scan_line_end_in_recovery(TSLexer *lexer) {
+  while (!lexer->eof(lexer) && is_white_space(lexer->lookahead) && lexer->lookahead != '\n') {
+    skip(lexer);
+  }
+  if (lexer->eof(lexer) || lexer->lookahead != '\n') {
+    return false;
+  }
+  advance(lexer);
+  lexer->mark_end(lexer);
+  while (!lexer->eof(lexer) && is_white_space(lexer->lookahead)) {
+    advance(lexer);
+  }
+  int32_t next = lexer->lookahead;
+  bool next_line_continues = next == ')' || next == ']' || next == '}' || next == ',' || next == '.';
+  return !next_line_continues && give(lexer, AUTOMATIC_SEMICOLON);
+}
+
 // constraint: a line comment and a general comment with a newline end the line like a newline (spec, Comments)
 // The scan gives a line comment itself, for the end before a carriage return. It reads a general comment only to
 // reject the text that Go rejects, and leaves the token to the lexer.
 bool tree_sitter_golang_external_scanner_scan(void *payload, TSLexer *lexer, const bool *valid_symbols) {
   (void)payload;
   if (valid_symbols[ERROR_SENTINEL]) {
-    return false;
+    return scan_line_end_in_recovery(lexer);
   }
   if (valid_symbols[INTERPRETED_STRING_CONTENT] || valid_symbols[RAW_STRING_CONTENT]) {
     return scan_string_content(lexer, valid_symbols[RAW_STRING_CONTENT]);
