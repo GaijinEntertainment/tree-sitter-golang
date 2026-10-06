@@ -318,6 +318,9 @@ export default grammar({
     $._line_continues,
     $._statement_start,
     $._never_returned,
+    $.comment,
+    $._interpreted_string_content,
+    $._raw_string_content,
     $._rejected_token,
     $._error_sentinel,
   ],
@@ -866,19 +869,15 @@ export default grammar({
       token.immediate('`'),
     ),
 
-    _raw_string_content: (_) => token.immediate(prec(1, /[^`]+/)),
-
     interpreted_string_literal: ($) => seq(
       '"',
       repeat(choice(alias($._interpreted_string_content, $.string_content), $.escape_sequence)),
       token.immediate('"'),
     ),
 
-    _interpreted_string_content: (_) => token.immediate(prec(1, /[^"\\\n]+/)),
-
     escape_sequence: (_) => token.immediate(new RegExp(`\\\\([abfnrtv\\\\"]|${ESCAPE_TAIL})`)),
 
-    rune_literal: (_) => token(new RegExp(`'([^'\\\\\\n]|\\\\([abfnrtv\\\\']|${ESCAPE_TAIL}))'`)),
+    rune_literal: (_) => token(new RegExp(`'([^'\\\\\\n\\uFEFF]|\\\\([abfnrtv\\\\']|${ESCAPE_TAIL}))'`)),
 
     int_literal: (_) => token(new RegExp(INT_LITERAL)),
 
@@ -895,8 +894,10 @@ export default grammar({
 
     _terminator: ($) => choice(';', $._automatic_semicolon),
 
+    // constraint: the scanner gives a line comment and rejects the comment text that Go rejects; the lexer takes
+    // this rule for a general comment, and for each comment while the parser recovers from an error
     comment: (_) => token(choice(
-      seq('//', /[^\n]*/),
+      seq('//', /([^\r\n]|\r+[^\r\n])*/),
       seq('/*', /[^*]*\*+([^/*][^*]*\*+)*/, '/'),
     )),
   },

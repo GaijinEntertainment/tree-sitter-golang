@@ -152,6 +152,46 @@ var f = 0o_8_9i
         (imaginary_literal)))))
 
 ================================================================================
+Comment markers inside string literals and a slash that starts no comment
+================================================================================
+
+package p
+
+var a = "x // y" + `/* z */`
+var b = '/' // c
+var c = a /b/ a
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (binary_expression
+          left: (interpreted_string_literal
+            (string_content))
+          right: (raw_string_literal
+            (string_content))))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (rune_literal))))
+  (comment)
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (binary_expression
+          left: (binary_expression
+            left: (identifier)
+            right: (identifier))
+          right: (identifier))))))
+
+================================================================================
 Rune literals
 ================================================================================
 
