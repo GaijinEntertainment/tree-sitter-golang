@@ -26,7 +26,7 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
   and simple statement rules, which forms the operand between `if`, `for` or `switch` and the block.
 - `src/scanner.c` - the automatic semicolon, and the empty markers that keep a token on the line of the token before
   it: `_same_line`, `_brace_on_same_line`, `_element_end`, `_colon_on_same_line`. Where a line ends at a marker and
-  no automatic semicolon is valid, it returns `_rejected_token`, which no rule accepts. It never returns
+  no automatic semicolon is valid, it returns the semicolon all the same, which is an error there. It never returns
   `_line_continues`, `_statement_start`, and `_never_returned`: a rule holds `_line_continues` only to make a line end
   at its position an error, and `_statement_start` only to make a `~` there an error. The scanner also gives a line
   comment and the text of a string literal, and returns `_rejected_token` for the text that Go rejects: NUL, a byte
@@ -82,8 +82,9 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
   `return` or `fallthrough`. A new position after such a token where no terminator is valid takes `_same_line`,
   `_brace_on_same_line`, `_element_end` or `_colon_on_same_line`, or an optional `_line_continues` where the parser
   must not commit to the next token. The `_line_continues` of a call expression covers the end of every operand.
-- `_element_end` stands before `,` and before a closing bracket, and the parser then needs the rest of the list. A
-  list that a closing bracket can follow outside the list rule, such as the names of a `const_spec`, takes plain commas.
+- `_element_end` stands before `,` and before a closing bracket, and the parser then needs the rest of the list.
+  Before a closing bracket a rule writes it as `listEnd`. A list that a closing bracket can follow outside the list
+  rule, such as the names of a `const_spec`, takes plain commas.
 - Go reads the longest operator token. Tree-sitter reads only the tokens that are valid in the parse state, and splits
   a longer token into valid ones: `a--b` becomes `a - -b`. A rule form that ends at `_never_returned`, which the
   scanner never returns, makes the long token valid where no rule takes it. Give such a form the fields of the valid
@@ -129,8 +130,18 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
   with both parsers before you add it. `test/corpus/recovery.txt` is the exception: each test there holds the tree,
   with its ERROR nodes, of an input that the parsers reject, and fixes how much of the text one error takes.
 - While the parser recovers from an error, every external token is valid, and the parser drops a token without text.
-  The scanner then gives `_automatic_semicolon` with the newline as its text, except before a line that starts with a
-  closing bracket, `,` or `.`. Without it the parser finds no statement end and puts the rest of the file into ERROR.
+  The scanner then gives `_recovery_line_end` with the newline as its text, except before a line that starts with a
+  closing bracket, `,` or `.`. The parser goes back to the nearest state that takes the token: the grammar takes it
+  as a terminator, and as an empty item of each list of statements, declarations or specs. No rule shifts it there:
+  the parser reads the line end again in that state. A list without that item sends the parser to a state far
+  before the error, and the declarations between them go into ERROR.
+- The parser closes an open bracket with one MISSING token only when the state after that token takes the token that
+  the parser has read. So the scanner returns `_automatic_semicolon` at a line end also where no rule takes it, in
+  place of a token that no state takes; `listEnd` makes `_element_end` optional before a closing bracket; and the last
+  declaration of a file needs no terminator. A text without an error takes none of these forms.
+- Measure a change of the error recovery on texts with one typing error each (a deleted bracket, a cut line, an
+  added `{` or `(` at a line end) made from files of the Go distribution: the mean share of a text inside ERROR nodes
+  and the count of texts that lose half or more, against `main` and against tree-sitter-go.
 - In `queries/highlights.scm`, a later pattern overrides an earlier one in both tree-sitter-highlight and Neovim. Put a
   specific pattern after the general pattern, and give each pattern one capture: tree-sitter-highlight drops every
   capture of an earlier match that shares a node with a later match.

@@ -16,6 +16,7 @@ enum TokenType {
   INTERPRETED_STRING_CONTENT,
   RAW_STRING_CONTENT,
   REJECTED_TOKEN,
+  RECOVERY_LINE_END,
   ERROR_SENTINEL,
 };
 
@@ -759,21 +760,20 @@ static bool give(TSLexer *lexer, enum TokenType token) {
   return true;
 }
 
-// constraint: Go inserts a semicolon at a line end after the token before each marker; where no rule takes a
-// semicolon, the scan returns `_rejected_token`, which no rule accepts
+// constraint: Go inserts a semicolon at a line end after the token before each marker; the scan returns the
+// semicolon also where no rule takes it, which is an error, and the parser then recovers with a token that later
+// states take: it can close a bracket with a MISSING node, or drop the open list and end the statement
 static bool take_line_end(TSLexer *lexer, const bool *valid_symbols) {
-  if (valid_symbols[AUTOMATIC_SEMICOLON]) {
-    return give(lexer, AUTOMATIC_SEMICOLON);
-  }
-  bool line_must_continue = valid_symbols[SAME_LINE] || valid_symbols[BRACE_ON_SAME_LINE] ||
-                            valid_symbols[ELEMENT_END] || valid_symbols[COLON_ON_SAME_LINE] ||
-                            valid_symbols[LINE_CONTINUES];
-  return line_must_continue && give(lexer, REJECTED_TOKEN);
+  bool is_after_semicolon_token = valid_symbols[AUTOMATIC_SEMICOLON] || valid_symbols[SAME_LINE] ||
+                                  valid_symbols[BRACE_ON_SAME_LINE] || valid_symbols[ELEMENT_END] ||
+                                  valid_symbols[COLON_ON_SAME_LINE] || valid_symbols[LINE_CONTINUES];
+  return is_after_semicolon_token && give(lexer, AUTOMATIC_SEMICOLON);
 }
 
 // constraint: while the parser recovers from an error, it takes no token without text, and every external token is
-// valid, so the scan cannot tell where a semicolon belongs; a semicolon that holds the newline lets the parser
-// continue at the next statement
+// valid, so the scan cannot tell where a semicolon belongs; `_recovery_line_end` holds the newline, and the grammar
+// takes it as a terminator and as an empty item of each list of statements, declarations or specs, so the parser
+// continues at the nearest of those places
 static bool scan_line_end_in_recovery(TSLexer *lexer) {
   while (!lexer->eof(lexer) && is_white_space(lexer->lookahead) && lexer->lookahead != '\n') {
     skip(lexer);
@@ -788,7 +788,7 @@ static bool scan_line_end_in_recovery(TSLexer *lexer) {
   }
   int32_t next = lexer->lookahead;
   bool next_line_continues = next == ')' || next == ']' || next == '}' || next == ',' || next == '.';
-  return !next_line_continues && give(lexer, AUTOMATIC_SEMICOLON);
+  return !next_line_continues && give(lexer, RECOVERY_LINE_END);
 }
 
 // constraint: a line comment and a general comment with a newline end the line like a newline (spec, Comments)
