@@ -514,6 +514,87 @@ type D [P * C]int
         element: (type_identifier)))))
 
 ================================================================================
+A comma or a type literal makes a pointer constraint, and an operator over the literal does not
+================================================================================
+
+package p
+
+type A[P *C,] = T[P]
+type B[P *[]int] = T[P]
+type C[P *D | ~E] = T[P]
+type F [P * *[]int]int
+type G [P *(*[]int)]int
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (type_declaration
+    (alias_declaration
+      name: (type_identifier)
+      type_parameters: (type_parameters
+        (type_parameter_declaration
+          name: (type_identifier)
+          constraint: (type_elem
+            (pointer_type
+              (type_identifier)))))
+      type: (generic_type
+        type: (type_identifier)
+        type_arguments: (type_arguments
+          (type_identifier)))))
+  (type_declaration
+    (alias_declaration
+      name: (type_identifier)
+      type_parameters: (type_parameters
+        (type_parameter_declaration
+          name: (type_identifier)
+          constraint: (type_elem
+            (pointer_type
+              (slice_type
+                element: (type_identifier))))))
+      type: (generic_type
+        type: (type_identifier)
+        type_arguments: (type_arguments
+          (type_identifier)))))
+  (type_declaration
+    (alias_declaration
+      name: (type_identifier)
+      type_parameters: (type_parameters
+        (type_parameter_declaration
+          name: (type_identifier)
+          constraint: (type_elem
+            (pointer_type
+              (type_identifier))
+            (underlying_type
+              (type_identifier)))))
+      type: (generic_type
+        type: (type_identifier)
+        type_arguments: (type_arguments
+          (type_identifier)))))
+  (type_declaration
+    (type_definition
+      name: (type_identifier)
+      type: (array_type
+        length: (binary_expression
+          left: (identifier)
+          right: (unary_expression
+            operand: (slice_type
+              element: (type_identifier))))
+        element: (type_identifier))))
+  (type_declaration
+    (type_definition
+      name: (type_identifier)
+      type: (array_type
+        length: (binary_expression
+          left: (identifier)
+          right: (parenthesized_expression
+            (unary_expression
+              operand: (slice_type
+                element: (type_identifier)))))
+        element: (type_identifier)))))
+
+================================================================================
 A pointer to a channel, function or interface type is a constraint
 ================================================================================
 

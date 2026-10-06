@@ -10,6 +10,8 @@ enum TokenType {
   LINE_CONTINUES,
   STATEMENT_START,
   NEVER_RETURNED,
+  TYPE_PARAMETERS_FOLLOW,
+  NO_TYPE_PARAMETERS,
   COMMENT,
   INTERPRETED_STRING_CONTENT,
   RAW_STRING_CONTENT,
@@ -22,6 +24,8 @@ enum {
   DIRECTIVE_PREFIX_LENGTH = 5,
   NOT_A_DIRECTIVE = DIRECTIVE_PREFIX_LENGTH + 1,
   MAX_LINE_OR_COLUMN = 1 << 30,
+  MAX_WORD_LENGTH = 9,
+  MAX_NESTING = 16,
 };
 
 static void advance(TSLexer *lexer) { lexer->advance(lexer, false); }
@@ -206,6 +210,235 @@ static bool scan_string_content(TSLexer *lexer, bool is_raw) {
   return has_content;
 }
 
+static bool is_word_character(int32_t c) {
+  return c == '_' || (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c >= 0x80;
+}
+
+static bool is_digit(int32_t c) { return c >= '0' && c <= '9'; }
+
+// Returns false at a `/` that starts no comment, after that `/`, and for a general comment without an end.
+static bool skip_white_space_and_comments(TSLexer *lexer, bool *passed_division_operator) {
+  *passed_division_operator = false;
+  for (;;) {
+    while (!lexer->eof(lexer) && is_white_space(lexer->lookahead)) {
+      advance(lexer);
+    }
+    if (lexer->lookahead != '/') {
+      return true;
+    }
+    advance(lexer);
+    bool ignored = false;
+    if (lexer->lookahead == '/') {
+      while (!lexer->eof(lexer) && lexer->lookahead != '\n') {
+        advance(lexer);
+      }
+    } else if (lexer->lookahead != '*') {
+      *passed_division_operator = true;
+      return true;
+    } else if (!scan_general_comment(lexer, &ignored, &ignored)) {
+      return false;
+    }
+  }
+}
+
+static bool starts_type_literal(const char *word) {
+  static const char *const keywords[] = {"chan", "func", "interface", "map", "struct"};
+  for (unsigned i = 0; i < sizeof(keywords) / sizeof(keywords[0]); i++) {
+    const char *keyword = keywords[i];
+    unsigned at = 0;
+    while (word[at] != 0 && word[at] == keyword[at]) {
+      at++;
+    }
+    if (word[at] == keyword[at]) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Reads a word, and tells whether it is a keyword that starts a type literal.
+static bool read_word_that_starts_type_literal(TSLexer *lexer) {
+  char word[MAX_WORD_LENGTH + 1];
+  unsigned length = 0;
+  while (!lexer->eof(lexer) && is_word_character(lexer->lookahead)) {
+    if (length < MAX_WORD_LENGTH) {
+      word[length] = lexer->lookahead < 0x80 ? (char)lexer->lookahead : '?';
+    }
+    length++;
+    advance(lexer);
+  }
+  if (length > MAX_WORD_LENGTH) {
+    return false;
+  }
+  word[length] = 0;
+  return starts_type_literal(word);
+}
+
+enum BracketKind { UNDECIDED_BRACKET, TYPE_PARAMETER_BRACKET, ARRAY_LENGTH_BRACKET };
+
+typedef struct {
+  bool shows_type_element;
+  bool has_unary_operator;
+} Nesting;
+
+// Reads one binary operator. Returns false for a text that is no binary operator of an expression.
+static bool read_binary_operator(TSLexer *lexer) {
+  int32_t first = lexer->lookahead;
+  advance(lexer);
+  int32_t second = lexer->lookahead;
+  switch (first) {
+    case '+':
+    case '-':
+    case '*':
+    case '%':
+    case '^':
+      return true;
+    case '&':
+      if (second == '^' || second == '&') {
+        advance(lexer);
+      }
+      return true;
+    case '|':
+      if (second == '|') {
+        advance(lexer);
+      }
+      return true;
+    case '<':
+    case '>':
+      if (second == '-') {
+        return false;
+      }
+      if (second == first || second == '=') {
+        advance(lexer);
+      }
+      return true;
+    case '=':
+    case '!':
+      if (second != '=') {
+        return false;
+      }
+      advance(lexer);
+      return true;
+    default:
+      return false;
+  }
+}
+
+// constraint: both parsers read the bracket after the name of a type declaration as an expression when it starts
+// with a name, and take a type parameter list where the expression splits into a name and a constraint: `P *C`
+// and `P (C)` split only before a comma, or when a term of the expression is a type literal or a `~` term that
+// stands under no operator but `|` and parentheses (extractName and isTypeElem of go/parser); a `[` after the name
+// starts a constraint in every text
+// The lexer stands on the `[`. The scan settles only the texts that hold no such term and no comma.
+static enum BracketKind classify_type_declaration_bracket(TSLexer *lexer) {
+  advance(lexer);
+  bool passed_division_operator;
+  if (!skip_white_space_and_comments(lexer, &passed_division_operator) || passed_division_operator ||
+      !is_word_character(lexer->lookahead) || is_digit(lexer->lookahead) ||
+      read_word_that_starts_type_literal(lexer)) {
+    return UNDECIDED_BRACKET;
+  }
+  if (!skip_white_space_and_comments(lexer, &passed_division_operator) || passed_division_operator) {
+    return UNDECIDED_BRACKET;
+  }
+  if (lexer->lookahead == '[') {
+    return TYPE_PARAMETER_BRACKET;
+  }
+  if (lexer->lookahead != '*' && lexer->lookahead != '(') {
+    return UNDECIDED_BRACKET;
+  }
+  Nesting levels[MAX_NESTING] = {{.shows_type_element = true, .has_unary_operator = false}};
+  unsigned depth = 0;
+  if (lexer->lookahead == '(') {
+    depth = 1;
+    levels[1] = levels[0];
+  }
+  advance(lexer);
+  bool expects_operand = true;
+  for (;;) {
+    Nesting *level = &levels[depth];
+    if (!skip_white_space_and_comments(lexer, &passed_division_operator) || lexer->eof(lexer)) {
+      return UNDECIDED_BRACKET;
+    }
+    if (passed_division_operator) {
+      if (expects_operand) {
+        return UNDECIDED_BRACKET;
+      }
+      level->has_unary_operator = false;
+      expects_operand = true;
+      continue;
+    }
+    int32_t c = lexer->lookahead;
+    bool shows_type_element = expects_operand && level->shows_type_element && !level->has_unary_operator;
+    if (is_word_character(c)) {
+      bool is_number = is_digit(c);
+      if (read_word_that_starts_type_literal(lexer) && !is_number && shows_type_element) {
+        return UNDECIDED_BRACKET;
+      }
+      expects_operand = false;
+      continue;
+    }
+    switch (c) {
+      case '(':
+      case '[':
+      case '{':
+        if ((c == '[' && shows_type_element) || depth + 1 == MAX_NESTING) {
+          return UNDECIDED_BRACKET;
+        }
+        depth++;
+        levels[depth] = (Nesting){.shows_type_element = c == '(' && shows_type_element, .has_unary_operator = false};
+        advance(lexer);
+        expects_operand = true;
+        continue;
+      case ')':
+      case ']':
+      case '}':
+        if (depth == 0) {
+          return c == ']' ? ARRAY_LENGTH_BRACKET : UNDECIDED_BRACKET;
+        }
+        depth--;
+        advance(lexer);
+        expects_operand = false;
+        continue;
+      case ',':
+        if (depth == 0) {
+          return UNDECIDED_BRACKET;
+        }
+        advance(lexer);
+        level->has_unary_operator = false;
+        expects_operand = true;
+        continue;
+      case '.':
+        advance(lexer);
+        continue;
+      default:
+        break;
+    }
+    if (!expects_operand) {
+      if (!read_binary_operator(lexer)) {
+        return UNDECIDED_BRACKET;
+      }
+      level->has_unary_operator = false;
+      expects_operand = true;
+      continue;
+    }
+    if (shows_type_element && (c == '~' || c == '<')) {
+      return UNDECIDED_BRACKET;
+    }
+    if (c != '+' && c != '-' && c != '!' && c != '^' && c != '*' && c != '&' && c != '~' && c != '<') {
+      return UNDECIDED_BRACKET;
+    }
+    advance(lexer);
+    if (c == '<') {
+      if (lexer->lookahead != '-') {
+        return UNDECIDED_BRACKET;
+      }
+      advance(lexer);
+    }
+    level->has_unary_operator = true;
+  }
+}
+
 static bool is_comma_or_closing_bracket(int32_t c) { return c == ',' || c == ')' || c == ']' || c == '}'; }
 
 static bool colon_is_a_token(TSLexer *lexer) {
@@ -308,6 +541,12 @@ bool tree_sitter_golang_external_scanner_scan(void *payload, TSLexer *lexer, con
   }
   if (valid_symbols[ELEMENT_END] && is_comma_or_closing_bracket(next)) {
     return give(lexer, ELEMENT_END);
+  }
+  if (valid_symbols[TYPE_PARAMETERS_FOLLOW] && next == '[') {
+    enum BracketKind kind = classify_type_declaration_bracket(lexer);
+    if (kind != UNDECIDED_BRACKET) {
+      return give(lexer, kind == TYPE_PARAMETER_BRACKET ? TYPE_PARAMETERS_FOLLOW : NO_TYPE_PARAMETERS);
+    }
   }
   if (valid_symbols[SAME_LINE]) {
     return give(lexer, SAME_LINE);
