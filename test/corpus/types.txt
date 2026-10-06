@@ -139,6 +139,72 @@ var h func() func() int
           result: (type_identifier))))))
 
 ================================================================================
+Arrays of implicit length that both parsers accept outside a composite literal
+================================================================================
+
+package p
+
+var x [...]int
+
+type T struct {
+	a, b [...]int
+	c    *[...]int
+}
+
+func f([...]int) [...]int
+
+func g[P ~[...]int | [...]string](p ...[...]int)
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      type: (implicit_length_array_type
+        element: (type_identifier))))
+  (type_declaration
+    (type_definition
+      name: (type_identifier)
+      type: (struct_type
+        (field_declaration
+          name: (field_identifier)
+          name: (field_identifier)
+          type: (implicit_length_array_type
+            element: (type_identifier)))
+        (field_declaration
+          name: (field_identifier)
+          type: (pointer_type
+            (implicit_length_array_type
+              element: (type_identifier)))))))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameters
+      (parameter_declaration
+        type: (implicit_length_array_type
+          element: (type_identifier))))
+    result: (implicit_length_array_type
+      element: (type_identifier)))
+  (function_declaration
+    name: (identifier)
+    type_parameters: (type_parameters
+      (type_parameter_declaration
+        name: (type_identifier)
+        constraint: (type_elem
+          (underlying_type
+            (implicit_length_array_type
+              element: (type_identifier)))
+          (implicit_length_array_type
+            element: (type_identifier)))))
+    parameters: (parameters
+      (parameter_declaration
+        name: (identifier)
+        type: (implicit_length_array_type
+          element: (type_identifier))))))
+
+================================================================================
 Qualified, generic and parenthesized types
 ================================================================================
 
