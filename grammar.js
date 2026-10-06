@@ -327,9 +327,9 @@ export default grammar({
     import_declaration: ($) => seq('import', choice($.import_spec, seq('(', terminated($, $.import_spec), ')'))),
 
     import_spec: ($) => seq(
-      optional(seq(
-        field('name', choice(alias('.', $.dot), alias('_', $.blank_identifier), packageIdentifier($))),
-        $._same_line,
+      optional(choice(
+        field('name', alias('.', $.dot)),
+        seq(field('name', choice(alias('_', $.blank_identifier), packageIdentifier($))), $._same_line),
       )),
       field('path', $._string_literal),
     ),

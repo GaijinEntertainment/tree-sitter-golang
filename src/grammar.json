@@ -141,47 +141,56 @@
           "type": "CHOICE",
           "members": [
             {
-              "type": "SEQ",
+              "type": "CHOICE",
               "members": [
                 {
                   "type": "FIELD",
                   "name": "name",
                   "content": {
-                    "type": "CHOICE",
-                    "members": [
-                      {
-                        "type": "ALIAS",
-                        "content": {
-                          "type": "STRING",
-                          "value": "."
-                        },
-                        "named": true,
-                        "value": "dot"
-                      },
-                      {
-                        "type": "ALIAS",
-                        "content": {
-                          "type": "STRING",
-                          "value": "_"
-                        },
-                        "named": true,
-                        "value": "blank_identifier"
-                      },
-                      {
-                        "type": "ALIAS",
-                        "content": {
-                          "type": "SYMBOL",
-                          "name": "identifier"
-                        },
-                        "named": true,
-                        "value": "package_identifier"
-                      }
-                    ]
+                    "type": "ALIAS",
+                    "content": {
+                      "type": "STRING",
+                      "value": "."
+                    },
+                    "named": true,
+                    "value": "dot"
                   }
                 },
                 {
-                  "type": "SYMBOL",
-                  "name": "_same_line"
+                  "type": "SEQ",
+                  "members": [
+                    {
+                      "type": "FIELD",
+                      "name": "name",
+                      "content": {
+                        "type": "CHOICE",
+                        "members": [
+                          {
+                            "type": "ALIAS",
+                            "content": {
+                              "type": "STRING",
+                              "value": "_"
+                            },
+                            "named": true,
+                            "value": "blank_identifier"
+                          },
+                          {
+                            "type": "ALIAS",
+                            "content": {
+                              "type": "SYMBOL",
+                              "name": "identifier"
+                            },
+                            "named": true,
+                            "value": "package_identifier"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "SYMBOL",
+                      "name": "_same_line"
+                    }
+                  ]
                 }
               ]
             },
