@@ -649,6 +649,61 @@ var c = 1.5.f
           field: (field_identifier))))))
 
 ================================================================================
+A selector on another operand as the type of a composite literal
+================================================================================
+
+package p
+
+var a = x.y.z{}
+var b = f().t{1, 2}
+var c = &x.y.z{k: v}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (composite_literal
+          type: (selector_expression
+            operand: (selector_expression
+              operand: (identifier)
+              field: (field_identifier))
+            field: (field_identifier))
+          value: (literal_value)))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (composite_literal
+          type: (selector_expression
+            operand: (call_expression
+              function: (identifier)
+              arguments: (arguments))
+            field: (field_identifier))
+          value: (literal_value
+            (int_literal)
+            (int_literal))))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (unary_expression
+          operand: (composite_literal
+            type: (selector_expression
+              operand: (selector_expression
+                operand: (identifier)
+                field: (field_identifier))
+              field: (field_identifier))
+            value: (literal_value
+              (keyed_element
+                key: (identifier)
+                element: (identifier)))))))))
+
+================================================================================
 The new builtin with an expression operand
 ================================================================================
 
