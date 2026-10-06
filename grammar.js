@@ -13,6 +13,7 @@ const PREC = {
   EXPRESSION_AS_TYPE_ARGUMENT: -3,
   TYPE_ELEMENT_IN_EXPRESSION: -2,
   TYPE_PARAMETERS_OVER_ARRAY_LENGTH: -1,
+  INDEX_EXPRESSION_AS_LITERAL_TYPE: -1,
   RECEIVE_CHANNEL_TYPE: -1,
   TYPE_GUARD_OUTSIDE_SWITCH: -1,
   OR: 1,
@@ -104,7 +105,39 @@ function spine($, prefix, base) {
  * @returns {ChoiceRule}
  */
 function operandBeforeDot($, prefix) {
-  return choice($.identifier, $[spineName(prefix, '_operand_other_than_name')]);
+  return choice($.identifier, ...operandsOtherThanName($, prefix));
+}
+
+/**
+ * @param {GrammarSymbols<string>} $
+ * @param {string} prefix
+ * @returns {RuleOrLiteral[]}
+ */
+function operandsOtherThanName($, prefix) {
+  return [$[spineName(prefix, '_possible_type_operand_other_than_name')], $[spineName(prefix, '_value_operand')]];
+}
+
+// constraint: the compiler takes an index expression as the type of a composite literal unless its operand or its one
+// index is a value by its syntax (`isValue` in the `syntax` package): a name, a selector, a type, `*x`, and an index
+// expression or a parenthesized expression of those can be a type; every other expression is a value
+/**
+ * @param {GrammarSymbols<string>} $
+ * @returns {RuleOrLiteral[]}
+ */
+function possibleTypeExpressions($) {
+  return [
+    alias($.indirection_expression, $.unary_expression),
+    alias($.receive_channel_type_operand, $.channel_type),
+    $._possible_type_operand,
+  ];
+}
+
+/**
+ * @param {GrammarSymbols<string>} $
+ * @returns {RuleOrLiteral[]}
+ */
+function valueExpressions($) {
+  return [$.unary_expression, $.binary_expression, $._value_operand];
 }
 
 // constraint: between `if`, `for` or `switch` and the block, Go reads the `{` after a named type as the block
@@ -118,20 +151,32 @@ function expressionSpine(prefix) {
     if (prefix !== '') {
       return types;
     }
-    return [...types, $._type_name, $.generic_type, alias($.nested_selector_expression, $.selector_expression)];
+    return [
+      ...types,
+      $._type_name,
+      $.generic_type,
+      alias($.nested_selector_expression, $.selector_expression),
+      prec.dynamic(PREC.INDEX_EXPRESSION_AS_LITERAL_TYPE, alias($.index_expression, $.index_expression)),
+    ];
   };
 
   return {
     [spineName(prefix, '_expression')]: ($) => choice(
       spine($, prefix, 'unary_expression'),
+      alias($[spineName(prefix, 'indirection_expression')], $.unary_expression),
       spine($, prefix, 'binary_expression'),
       spine($, prefix, '_operand_expression'),
       alias($.receive_channel_type_operand, $.channel_type),
     ),
 
+    [spineName(prefix, 'indirection_expression')]: ($) => prec(PREC.UNARY, seq(
+      field('operator', '*'),
+      field('operand', spine($, prefix, '_expression')),
+    )),
+
     [spineName(prefix, 'unary_expression')]: ($) => choice(
       prec(PREC.UNARY, seq(
-        field('operator', choice('+', '-', '!', '^', '*', '&')),
+        field('operator', choice('+', '-', '!', '^', '&')),
         field('operand', spine($, prefix, '_expression')),
       )),
       // constraint: `<-` before a channel type belongs to the type (go/parser moves it there, or reports an error),
@@ -140,8 +185,10 @@ function expressionSpine(prefix) {
         field('operator', '<-'),
         field('operand', choice(
           spine($, prefix, 'unary_expression'),
+          alias($[spineName(prefix, 'indirection_expression')], $.unary_expression),
           $.identifier,
-          spine($, prefix, '_operand_other_than_name_and_channel_type'),
+          spine($, prefix, '_possible_type_operand_other_than_name_and_channel_type'),
+          spine($, prefix, '_value_operand'),
         )),
       ))),
       typeElementInExpression(prec(PREC.UNARY, seq(
@@ -171,31 +218,38 @@ function expressionSpine(prefix) {
       )),
     ),
 
-    [spineName(prefix, '_operand_expression')]: ($) => choice(
+    [spineName(prefix, '_possible_type_operand')]: ($) => choice(
       $.identifier,
-      spine($, prefix, '_operand_other_than_name'),
+      spine($, prefix, '_possible_type_operand_other_than_name'),
     ),
 
-    [spineName(prefix, '_operand_other_than_name')]: ($) => choice(
+    [spineName(prefix, '_possible_type_operand_other_than_name')]: ($) => choice(
       typeElementInExpression($.channel_type),
-      spine($, prefix, '_operand_other_than_name_and_channel_type'),
+      spine($, prefix, '_possible_type_operand_other_than_name_and_channel_type'),
     ),
 
     // constraint: both parsers read `{` after an array, slice, struct or map type as a composite literal value,
     // also when the type is in parentheses, and then report the parentheses; a block can follow an operand of a
     // header, so the header gives such a type in parentheses a form that takes the `{` and never completes
-    [spineName(prefix, '_operand_other_than_name_and_channel_type')]: ($) => choice(
+    [spineName(prefix, '_possible_type_operand_other_than_name_and_channel_type')]: ($) => choice(
       ...LITERAL_TYPES_WITHOUT_NAME.map((type) => typeElementInExpression($[type])),
       alias(
         prefix === '' ? $._parenthesized_literal_type : $._header_parenthesized_literal_type,
         $.parenthesized_expression,
       ),
-      spine($, prefix, '_operand_other_than_name_and_channel_or_literal_type'),
+      spine($, prefix, '_possible_type_operand_other_than_name_and_channel_or_literal_type'),
     ),
 
-    [spineName(prefix, '_operand_other_than_name_and_channel_or_literal_type')]: ($) => choice(
+    [spineName(prefix, '_possible_type_operand_other_than_name_and_channel_or_literal_type')]: ($) => choice(
       typeElementInExpression($.function_type),
       typeElementInExpression($.interface_type),
+      alias($._parenthesized_possible_type, $.parenthesized_expression),
+      spine($, prefix, 'selector_expression'),
+      alias($[spineName(prefix, 'nested_selector_expression')], $.selector_expression),
+      spine($, prefix, 'index_expression'),
+    ),
+
+    [spineName(prefix, '_value_operand')]: ($) => choice(
       $.int_literal,
       $.float_literal,
       $.imaginary_literal,
@@ -205,12 +259,15 @@ function expressionSpine(prefix) {
       spine($, prefix, 'composite_literal'),
       $.function_literal,
       $.parenthesized_expression,
-      spine($, prefix, 'selector_expression'),
-      alias($[spineName(prefix, 'nested_selector_expression')], $.selector_expression),
-      spine($, prefix, 'index_expression'),
+      alias($[spineName(prefix, 'value_index_expression')], $.index_expression),
       spine($, prefix, 'slice_expression'),
       spine($, prefix, 'type_assertion_expression'),
       spine($, prefix, 'call_expression'),
+    ),
+
+    [spineName(prefix, '_operand_expression')]: ($) => choice(
+      spine($, prefix, '_possible_type_operand'),
+      spine($, prefix, '_value_operand'),
     ),
 
     [spineName(prefix, 'composite_literal')]: ($) => prec(PREC.PRIMARY, seq(
@@ -232,23 +289,53 @@ function expressionSpine(prefix) {
     // constraint: both parsers take a selector expression as the type of a composite literal; a selector on a name
     // is a qualified identifier there, so the selector on another operand has its own rule
     [spineName(prefix, 'nested_selector_expression')]: ($) => prec(PREC.PRIMARY, seq(
-      field('operand', spine($, prefix, '_operand_other_than_name')),
+      field('operand', choice(...operandsOtherThanName($, prefix))),
       '.',
       field('field', alias($.identifier, $.field_identifier)),
     )),
 
+    // constraint: this rule holds the index expressions that can be a type by their syntax, and
+    // `value_index_expression` holds the others; more than one index makes a type argument list
     [spineName(prefix, 'index_expression')]: ($) => prec(PREC.PRIMARY, seq(
-      field('operand', spine($, prefix, '_operand_expression')),
+      field('operand', spine($, prefix, '_possible_type_operand')),
       '[',
-      field('index', $._expression),
-      repeat(seq($._element_end, ',', field('index', $._type))),
+      choice(
+        seq(
+          field('index', choice(...possibleTypeExpressions($))),
+          repeat(seq($._element_end, ',', field('index', $._type))),
+        ),
+        seq(
+          field('index', choice(...valueExpressions($))),
+          repeat1(seq($._element_end, ',', field('index', $._type))),
+        ),
+      ),
       $._element_end,
       optional(','),
       ']',
     )),
 
+    [spineName(prefix, 'value_index_expression')]: ($) => prec(PREC.PRIMARY, choice(
+      seq(
+        field('operand', spine($, prefix, '_value_operand')),
+        '[',
+        field('index', $._expression),
+        repeat(seq($._element_end, ',', field('index', $._type))),
+        $._element_end,
+        optional(','),
+        ']',
+      ),
+      seq(
+        field('operand', spine($, prefix, '_possible_type_operand')),
+        '[',
+        field('index', choice(...valueExpressions($))),
+        $._element_end,
+        optional(','),
+        ']',
+      ),
+    )),
+
     [spineName(prefix, 'slice_expression')]: ($) => prec(PREC.PRIMARY, seq(
-      field('operand', spine($, prefix, '_operand_expression')),
+      field('operand', choice(spine($, prefix, '_possible_type_operand'), spine($, prefix, '_value_operand'))),
       '[',
       choice(
         seq(
@@ -376,18 +463,18 @@ export default grammar({
   conflicts: ($) => [
     [$.parameter_declaration, $._type_name],
     [$.qualified_identifier, $.selector_expression],
-    [$._type_name, $._operand_expression],
-    [$._type_name, $._expression_other_than_literal_type],
-    [$.type_parameter_declaration, $._operand_expression],
-    [$.type_parameter_declaration, $._type_name, $._operand_expression],
-    [$.type_switch_statement, $._header_operand_expression],
-    [$._simple_type, $._operand_other_than_name_and_channel_type],
+    [$._type_name, $._possible_type_operand],
+    [$._type_name, $._parenthesized_possible_type],
+    [$.type_parameter_declaration, $._possible_type_operand],
+    [$.type_parameter_declaration, $._type_name, $._possible_type_operand],
+    [$.type_switch_statement, $._header_possible_type_operand],
+    [$._simple_type, $._possible_type_operand_other_than_name_and_channel_type],
     [$._simple_type, $._parenthesized_literal_type],
     [$._simple_type_after_name, $._parenthesized_literal_type],
-    [$._simple_type_after_name, $._expression_other_than_literal_type],
-    [$._simple_type_after_name, $._operand_other_than_name],
-    [$._simple_type_after_name, $._operand_other_than_name_and_channel_type],
-    [$._simple_type_after_name, $._operand_other_than_name_and_channel_or_literal_type],
+    [$._simple_type_after_name, $._parenthesized_possible_type],
+    [$._simple_type_after_name, $._possible_type_operand_other_than_name],
+    [$._simple_type_after_name, $._possible_type_operand_other_than_name_and_channel_type],
+    [$._simple_type_after_name, $._possible_type_operand_other_than_name_and_channel_or_literal_type],
     [$.channel_type, $.receive_channel_type],
     [$.receive_channel_type, $.receive_channel_type_operand],
     [$._type_name, $.generic_type_with_expression],
@@ -909,21 +996,25 @@ export default grammar({
     ...expressionSpine(''),
     ...expressionSpine('header_'),
 
-    // constraint: the second form never completes; it keeps `_expression` as the child type in `node-types.json`
+    // constraint: the last form never completes; it keeps `_expression` as the child type in `node-types.json`
     parenthesized_expression: ($) => seq(
       '(',
-      choice($._expression_other_than_literal_type, seq($._never_returned, $._expression)),
+      choice(...valueExpressions($), seq($._never_returned, $._expression)),
       $._element_end,
       ')',
     ),
 
-    _expression_other_than_literal_type: ($) => choice(
-      $.unary_expression,
-      $.binary_expression,
-      $.identifier,
-      typeElementInExpression($.channel_type),
-      alias($.receive_channel_type_operand, $.channel_type),
-      $._operand_other_than_name_and_channel_or_literal_type,
+    _parenthesized_possible_type: ($) => seq(
+      '(',
+      choice(
+        alias($.indirection_expression, $.unary_expression),
+        alias($.receive_channel_type_operand, $.channel_type),
+        $.identifier,
+        typeElementInExpression($.channel_type),
+        $._possible_type_operand_other_than_name_and_channel_or_literal_type,
+      ),
+      $._element_end,
+      ')',
     ),
 
     _parenthesized_literal_type: ($) => prec.dynamic(PREC.TYPE_ELEMENT_IN_EXPRESSION, seq(

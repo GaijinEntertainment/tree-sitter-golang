@@ -649,6 +649,95 @@ var c = 1.5.f
           field: (field_identifier))))))
 
 ================================================================================
+An index expression that can be a type as the type of a composite literal
+================================================================================
+
+package p
+
+var a = x.y.z[T]{}
+var b = x[T][U]{1}
+var c = x[y.z.w]{}
+var d = x[*f()]{}
+var e = x[1, int]{}
+var g = T[int]{}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (composite_literal
+          type: (index_expression
+            operand: (selector_expression
+              operand: (selector_expression
+                operand: (identifier)
+                field: (field_identifier))
+              field: (field_identifier))
+            index: (identifier))
+          value: (literal_value)))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (composite_literal
+          type: (index_expression
+            operand: (index_expression
+              operand: (identifier)
+              index: (identifier))
+            index: (identifier))
+          value: (literal_value
+            (int_literal))))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (composite_literal
+          type: (index_expression
+            operand: (identifier)
+            index: (selector_expression
+              operand: (selector_expression
+                operand: (identifier)
+                field: (field_identifier))
+              field: (field_identifier)))
+          value: (literal_value)))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (composite_literal
+          type: (index_expression
+            operand: (identifier)
+            index: (unary_expression
+              operand: (call_expression
+                function: (identifier)
+                arguments: (arguments))))
+          value: (literal_value)))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (composite_literal
+          type: (index_expression
+            operand: (identifier)
+            index: (int_literal)
+            index: (type_identifier))
+          value: (literal_value)))))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (composite_literal
+          type: (generic_type
+            type: (type_identifier)
+            type_arguments: (type_arguments
+              (type_identifier)))
+          value: (literal_value))))))
+
+================================================================================
 A selector on another operand as the type of a composite literal
 ================================================================================
 
