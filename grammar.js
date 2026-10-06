@@ -496,7 +496,20 @@ export default grammar({
 
     unnamed_variadic_parameter_declaration: ($) => seq('...', field('type', $._type)),
 
-    _result: ($) => choice($.parameters, $._simple_type),
+    _result: ($) => choice(alias($._result_parameters, $.parameters), $._simple_type),
+
+    _result_parameters: ($) => seq(
+      '(',
+      optional(seq(
+        choice(
+          elementList($, $.parameter_declaration),
+          elementList($, alias($.unnamed_parameter_declaration, $.parameter_declaration)),
+        ),
+        $._element_end,
+        optional(','),
+      )),
+      ')',
+    ),
 
     _type: ($) => choice($._simple_type, $.parenthesized_type),
 
