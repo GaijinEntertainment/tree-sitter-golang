@@ -89,8 +89,9 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
   `_brace_on_same_line`, `_element_end` or `_colon_on_same_line`, or an optional `_line_continues` where the parser
   must not commit to the next token. The `_line_continues` of a call expression covers the end of every operand.
 - `_element_end` stands before `,` and before a closing bracket, and the parser then needs the rest of the list.
-  Before a closing bracket a rule writes it as `listEnd`. A list that a closing bracket can follow outside the list
-  rule, such as the names of a `const_spec`, takes plain commas.
+  Before a closing bracket a rule writes it as `listEnd`, and before `,` as `elementSeparator`. A list that a closing
+  bracket can follow outside the list rule, such as the names of a `const_spec`, takes plain commas. A list with
+  `_element_end` takes no plain `,` between its elements: it conflicts with `_element_separator`.
 - Go reads the longest operator token. Tree-sitter reads only the tokens that are valid in the parse state, and splits
   a longer token into valid ones: `a--b` becomes `a - -b`. A rule form that ends at `_never_returned`, which the
   scanner never returns, makes the long token valid where no rule takes it. Give such a form the fields of the valid
@@ -156,6 +157,16 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
   comma does not take the code after the list. A semicolon before a line comment cannot take the line break after
   the comment, so the scanner leaves a comment before such a line to the lexer and gives the semicolon after it. The
   lexer does no check of a comment: the scanner leaves it only a comment that needs none.
+- The parser adds a MISSING token only when the state after it reduces a rule on the token that the parser has read.
+  `_element_separator` is that rule for a `,`, and it reduces only before `_line_end_before_element`. The scanner
+  gives that token at a line end after a list element when the next line starts an element and no common statement
+  (a brace, a string, a rune or a number literal, `&`, `[`, or a name before `:`): the parser adds a MISSING `,` and
+  continues the list. Any other line gets the semicolon, and the parser closes the list with a MISSING bracket.
+  - The first MISSING token that fits wins, in the order of the symbols. A separator rule that reduces before every
+    token that starts an element makes a MISSING `,` win over a MISSING bracket on one line.
+  - After a MISSING token the parser reads the next token again, in the new state, and drops a token without text
+    there. So the scanner gives `_line_end_before_element` also in the state after `,`, with the line break as its
+    padding. A text without an error takes that token after a `,` at a line end; its tree does not change.
 - Measure a change of the error recovery on texts with one typing error each (a deleted bracket, a cut line, an
   added `{` or `(` at a line end) made from files of the Go distribution: the mean share of a text inside ERROR nodes
   and the count of texts that lose half or more, against `main` and against tree-sitter-go. Measure the fragment form

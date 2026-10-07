@@ -18,6 +18,7 @@ enum TokenType {
   REJECTED_TOKEN,
   RECOVERY_LINE_END,
   FRAGMENT_START,
+  LINE_END_BEFORE_ELEMENT,
   ERROR_SENTINEL,
 };
 
@@ -760,6 +761,24 @@ static bool colon_is_a_token(TSLexer *lexer) {
   return lexer->lookahead != '=';
 }
 
+// constraint: a line after a list element that starts with one of these tokens continues the list, because no
+// common statement starts with them: a brace, a string, a rune or a number literal, `&`, `[`, and a name before `:`
+// The lexer stands on the first character of the first token of the line.
+static bool starts_element_and_no_statement(TSLexer *lexer) {
+  int32_t first = lexer->lookahead;
+  if (first == '{' || first == '"' || first == '`' || first == '\'' || first == '&' || first == '[' ||
+      is_digit(first)) {
+    return true;
+  }
+  if (!is_word_character(first) || read_word(lexer) != NAME_WORD) {
+    return false;
+  }
+  while (lexer->lookahead == ' ' || lexer->lookahead == '\t') {
+    advance(lexer);
+  }
+  return lexer->lookahead == ':' && colon_is_a_token(lexer);
+}
+
 // constraint: a text is a Go file when its first token is `package`, also when a token that is no name follows it:
 // the file form drops that token and finds the name. Any other text is a fragment, and so is a text in which a
 // keyword or the end of the text follows `package`: the file form would take the name of the next declaration for
@@ -834,11 +853,12 @@ static bool ends_line_in_list(const bool *valid_symbols) {
 }
 
 // constraint: the semicolon of a line end stands before a line comment, and a semicolon there keeps the line break
-// after the comment out of its padding; so the scan leaves a comment before a line with a closing bracket to the
-// lexer, and gives the semicolon after it. The lexer does no check of a comment: the scan leaves it only a comment
-// that needs none, without a character that Go rejects, a line directive, or a carriage return at its end
+// after the comment out of its padding; so the scan leaves a comment before a line that closes or continues the
+// list to the lexer, and gives the token of the line end after it. The lexer does no check of a comment: the scan
+// leaves it only a comment that needs none, without a character that Go rejects, a line directive, or a carriage
+// return at its end
 // The lexer stands on the second `/` of the comment.
-static bool is_plain_comment_before_closing_bracket(TSLexer *lexer) {
+static bool is_plain_comment_before_list_line(TSLexer *lexer) {
   advance(lexer);
   LineDirective directive = {0};
   bool ends_with_carriage_return = false;
@@ -854,7 +874,7 @@ static bool is_plain_comment_before_closing_bracket(TSLexer *lexer) {
   bool passed_division_operator;
   return !ends_with_carriage_return && directive.matched_prefix_length != DIRECTIVE_PREFIX_LENGTH &&
          skip_white_space_and_comments(lexer, &passed_division_operator) && !passed_division_operator &&
-         is_closing_bracket(lexer->lookahead);
+         (is_closing_bracket(lexer->lookahead) || starts_element_and_no_statement(lexer));
 }
 
 // constraint: while the parser recovers from an error, it takes no token without text, and every external token is
@@ -905,7 +925,7 @@ bool tree_sitter_golang_external_scanner_scan(void *payload, TSLexer *lexer, con
   if (next == '/') {
     advance(lexer);
     if (lexer->lookahead == '/') {
-      if (ends_line_in_list(valid_symbols) && is_plain_comment_before_closing_bracket(lexer)) {
+      if (ends_line_in_list(valid_symbols) && is_plain_comment_before_list_line(lexer)) {
         return false;
       }
       if (take_line_end(lexer, valid_symbols)) {
@@ -938,8 +958,15 @@ bool tree_sitter_golang_external_scanner_scan(void *payload, TSLexer *lexer, con
     return give(lexer, REJECTED_TOKEN);
   }
   if (line_ended) {
-    if (ends_line_in_list(valid_symbols) && is_closing_bracket(next)) {
+    // constraint: after a MISSING `,` the parser reads the line end again, in the state after `,`, and drops a token
+    // without text there; so `_line_end_before_element` takes the line break as its padding in that state
+    bool is_in_list = ends_line_in_list(valid_symbols);
+    bool is_after_separator = !is_in_list && valid_symbols[LINE_END_BEFORE_ELEMENT];
+    if (is_after_separator || (is_in_list && is_closing_bracket(next))) {
       lexer->mark_end(lexer);
+    }
+    if ((is_in_list || is_after_separator) && next != 0 && next != '/' && starts_element_and_no_statement(lexer)) {
+      return give(lexer, LINE_END_BEFORE_ELEMENT);
     }
     return take_line_end(lexer, valid_symbols);
   }
