@@ -307,11 +307,11 @@ function expressionSpine(prefix) {
       choice(
         seq(
           field('index', choice(...possibleTypeExpressions($))),
-          repeat(seq($._element_end, ',', field('index', $._type))),
+          repeat(seq(elementSeparator($), field('index', $._type))),
         ),
         seq(
           field('index', choice(...valueExpressions($))),
-          repeat1(seq($._element_end, ',', field('index', $._type))),
+          repeat1(seq(elementSeparator($), field('index', $._type))),
         ),
       ),
       listEnd($),
@@ -324,7 +324,7 @@ function expressionSpine(prefix) {
         field('operand', spine($, prefix, '_value_operand')),
         '[',
         field('index', $._expression),
-        repeat(seq($._element_end, ',', field('index', $._type))),
+        repeat(seq(elementSeparator($), field('index', $._type))),
         listEnd($),
         optional(','),
         ']',
@@ -456,6 +456,7 @@ export default grammar({
     $._rejected_token,
     $._recovery_line_end,
     $._fragment_start,
+    $._line_end_before_element,
     $._error_sentinel,
   ],
 
@@ -673,7 +674,7 @@ export default grammar({
       choice(
         seq(
           elementList($, $.parameter_declaration),
-          optional(seq($._element_end, ',', alias($.variadic_parameter_declaration, $.parameter_declaration))),
+          optional(seq(elementSeparator($), alias($.variadic_parameter_declaration, $.parameter_declaration))),
         ),
         alias($.variadic_parameter_declaration, $.parameter_declaration),
       ),
@@ -777,7 +778,7 @@ export default grammar({
     _type_arguments_with_expression: ($) => seq(
       '[',
       $._expression,
-      repeat(seq($._element_end, ',', $._type)),
+      repeat(seq(elementSeparator($), $._type)),
       listEnd($),
       optional(','),
       ']',
@@ -1155,6 +1156,12 @@ export default grammar({
     // constraint: the scanner gives `_recovery_line_end` only while the parser recovers from an error
     _terminator: ($) => choice(';', $._automatic_semicolon, $._recovery_line_end),
 
+    // constraint: the parser adds a MISSING token only when the state after it reduces a rule on the token that the
+    // parser has read; this rule is that reduction for a `,`, and only before `_line_end_before_element`, which the
+    // scanner gives at a line end after an element when the next line starts an element. Before any other token the
+    // state after `,` has no reduction, so the parser closes an open list with a MISSING bracket
+    _element_separator: (_) => ',',
+
     // constraint: the scanner gives a line comment and rejects the comment text that Go rejects; the lexer takes
     // this rule for a general comment, and for each comment while the parser recovers from an error
     comment: (_) => token(choice(
@@ -1296,7 +1303,18 @@ function statementItem($) {
  * @returns {SeqRule}
  */
 function elementList($, rule) {
-  return seq(rule, repeat(seq($._element_end, ',', rule)));
+  return seq(rule, repeat(seq(elementSeparator($), rule)));
+}
+
+// constraint: the parser adds a MISSING `,` only when `,` is a token of the state after an element, so
+// `_element_end` is optional before it; the scanner gives `_element_end` wherever it is valid, and a text without an
+// error never takes the form without it
+/**
+ * @param {GrammarSymbols<string>} $
+ * @returns {SeqRule}
+ */
+function elementSeparator($) {
+  return seq(optional($._element_end), choice(',', seq($._element_separator, $._line_end_before_element)));
 }
 
 /**

@@ -306,6 +306,90 @@ func f() {}
     body: (block)))
 
 ================================================================================
+A row of a table without its comma takes a MISSING comma
+================================================================================
+
+package p
+
+func f() {
+	tests := []test{
+		{"a", 1}
+		{"b", 2},
+	}
+	g(tests)
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameters)
+    body: (block
+      (short_var_declaration
+        left: (expression_list
+          (identifier))
+        right: (expression_list
+          (composite_literal
+            type: (slice_type
+              element: (type_identifier))
+            value: (literal_value
+              (literal_value
+                (interpreted_string_literal
+                  (string_content))
+                (int_literal))
+              (MISSING ",")
+              (literal_value
+                (interpreted_string_literal
+                  (string_content))
+                (int_literal))))))
+      (expression_statement
+        (call_expression
+          function: (identifier)
+          arguments: (arguments
+            (identifier)))))))
+
+================================================================================
+A field without its comma before a line comment takes a MISSING comma
+================================================================================
+
+package p
+
+var x = T{
+	a: 1 // one
+	b: 2,
+}
+
+func f() {}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (composite_literal
+          type: (type_identifier)
+          value: (literal_value
+            (keyed_element
+              key: (identifier)
+              element: (int_literal))
+            (comment)
+            (MISSING ",")
+            (keyed_element
+              key: (identifier)
+              element: (int_literal)))))))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameters)
+    body: (block)))
+
+================================================================================
 A last argument without its comma before a line comment does not take the next statement
 ================================================================================
 
