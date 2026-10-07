@@ -751,7 +751,9 @@ static enum BracketKind classify_type_declaration_bracket(TSLexer *lexer) {
   }
 }
 
-static bool is_comma_or_closing_bracket(int32_t c) { return c == ',' || c == ')' || c == ']' || c == '}'; }
+static bool is_closing_bracket(int32_t c) { return c == ')' || c == ']' || c == '}'; }
+
+static bool is_comma_or_closing_bracket(int32_t c) { return c == ',' || is_closing_bracket(c); }
 
 static bool colon_is_a_token(TSLexer *lexer) {
   advance(lexer);
@@ -824,6 +826,37 @@ static bool take_line_end(TSLexer *lexer, const bool *valid_symbols) {
   return is_after_semicolon_token && give(lexer, AUTOMATIC_SEMICOLON);
 }
 
+// constraint: a line end after an element of a list is an error, and the semicolon that the scan returns for it has
+// no text; the parser does not go back to a state at the position where it stands, so the semicolon before a line
+// that starts with a closing bracket takes the line break as its padding, and the bracket then closes the list
+static bool ends_line_in_list(const bool *valid_symbols) {
+  return valid_symbols[ELEMENT_END] && !valid_symbols[AUTOMATIC_SEMICOLON];
+}
+
+// constraint: the semicolon of a line end stands before a line comment, and a semicolon there keeps the line break
+// after the comment out of its padding; so the scan leaves a comment before a line with a closing bracket to the
+// lexer, and gives the semicolon after it. The lexer does no check of a comment: the scan leaves it only a comment
+// that needs none, without a character that Go rejects, a line directive, or a carriage return at its end
+// The lexer stands on the second `/` of the comment.
+static bool is_plain_comment_before_closing_bracket(TSLexer *lexer) {
+  advance(lexer);
+  LineDirective directive = {0};
+  bool ends_with_carriage_return = false;
+  while (!lexer->eof(lexer) && lexer->lookahead != '\n') {
+    int32_t c = lexer->lookahead;
+    if (!is_valid_in_source(c)) {
+      return false;
+    }
+    read_directive_character(&directive, c);
+    ends_with_carriage_return = c == '\r';
+    advance(lexer);
+  }
+  bool passed_division_operator;
+  return !ends_with_carriage_return && directive.matched_prefix_length != DIRECTIVE_PREFIX_LENGTH &&
+         skip_white_space_and_comments(lexer, &passed_division_operator) && !passed_division_operator &&
+         is_closing_bracket(lexer->lookahead);
+}
+
 // constraint: while the parser recovers from an error, it takes no token without text, and every external token is
 // valid, so the scan cannot tell where a semicolon belongs; `_recovery_line_end` holds the newline, and the grammar
 // takes it as a terminator and as an empty item of each list of statements, declarations or specs, so the parser
@@ -872,6 +905,9 @@ bool tree_sitter_golang_external_scanner_scan(void *payload, TSLexer *lexer, con
   if (next == '/') {
     advance(lexer);
     if (lexer->lookahead == '/') {
+      if (ends_line_in_list(valid_symbols) && is_plain_comment_before_closing_bracket(lexer)) {
+        return false;
+      }
       if (take_line_end(lexer, valid_symbols)) {
         return true;
       }
@@ -902,6 +938,9 @@ bool tree_sitter_golang_external_scanner_scan(void *payload, TSLexer *lexer, con
     return give(lexer, REJECTED_TOKEN);
   }
   if (line_ended) {
+    if (ends_line_in_list(valid_symbols) && is_closing_bracket(next)) {
+      lexer->mark_end(lexer);
+    }
     return take_line_end(lexer, valid_symbols);
   }
   if (next == '\'' && rune_starts_with_invalid_bytes(lexer)) {
