@@ -455,6 +455,7 @@ export default grammar({
     $._raw_string_content,
     $._rejected_token,
     $._recovery_line_end,
+    $._fragment_start,
     $._error_sentinel,
   ],
 
@@ -489,6 +490,9 @@ export default grammar({
     [$.parameter_declaration, $._type_name, $.generic_type_with_expression],
     [$._type_name, $.field_declaration, $.generic_type_with_expression],
     [$._range_left, $.header_expression_list],
+    [$.receiver_parameter_declaration, $.parameter_declaration, $._type_name, $.generic_type_with_expression],
+    [$.receiver, $._unnamed_parameters],
+    [$.receiver_parameter_declaration, $.parameter_declaration],
   ],
 
   supertypes: ($) => [
@@ -499,7 +503,26 @@ export default grammar({
   ],
 
   rules: {
-    source_file: ($) => seq($.package_clause, $._terminator, importItems($), declarationItems($)),
+    // constraint: a text that starts with a package clause is a Go file, and the first form follows the parsers; any
+    // other text is a fragment, such as a code block of a document; the scanner gives `_fragment_start` for it, and
+    // picks the form for a damaged package clause; so the first state takes only `package` and that token, and the
+    // parser does not go back to it while it recovers in a file
+    source_file: ($) => choice(
+      seq($.package_clause, $._terminator, importItems($), declarationItems($)),
+      seq($._fragment_start, optional($._fragment)),
+    ),
+
+    // constraint: a fragment holds what a function body holds and what the top level of a file holds, in any order;
+    // a statement always takes its terminator, which the scanner gives at the end of the text: a statement that the
+    // end of the text can follow would let the parser add a MISSING statement keyword in an open block of a file
+    _fragment: ($) => {
+      const declaration = choice($.import_declaration, $.function_declaration, $.method_declaration);
+      const finalForms = [declaration, alias($.empty_labeled_statement, $.labeled_statement)];
+      return choice(
+        seq(repeat1(choice(seq(declaration, $._terminator), statementItem($))), optional(choice(...finalForms))),
+        ...finalForms,
+      );
+    },
 
     package_clause: ($) => seq('package', field('name', packageIdentifier($))),
 

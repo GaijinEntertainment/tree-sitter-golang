@@ -10,6 +10,9 @@ The grammar follows the Go specification and the parsers of the Go release: it p
 compiler's parser accept, with the tree structure of `go/ast`, and reports an error wherever a grammar can see that one
 of them rejects the input. It does not do the checks of the type checker.
 
+A text that does not start with a package clause is a fragment, such as a code block of a document: the grammar parses
+its import declarations, declarations and statements in any order.
+
 ## References
 
 - [The Go Programming Language Specification](https://go.dev/ref/spec)

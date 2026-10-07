@@ -267,3 +267,92 @@ func e() {}
     name: (identifier)
     parameters: (parameters)
     body: (block)))
+
+================================================================================
+A package clause without a name does not take the declarations after it
+================================================================================
+
+package
+
+import "fmt"
+
+func f() {
+	fmt.Println(1)
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (ERROR)
+  (import_declaration
+    (import_spec
+      path: (interpreted_string_literal
+        (string_content))))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameters)
+    body: (block
+      (expression_statement
+        (call_expression
+          function: (selector_expression
+            operand: (identifier)
+            field: (field_identifier))
+          arguments: (arguments
+            (int_literal)))))))
+
+================================================================================
+A token before the name of a package clause does not take the clause
+================================================================================
+
+package =main
+
+import "fmt"
+
+func f() {}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    (ERROR)
+    name: (package_identifier))
+  (import_declaration
+    (import_spec
+      path: (interpreted_string_literal
+        (string_content))))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameters)
+    body: (block)))
+
+================================================================================
+A package clause in a fragment does not take the statements before it
+================================================================================
+
+x := 1
+y := 2
+
+package p
+
+func f() {}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (short_var_declaration
+    left: (expression_list
+      (identifier))
+    right: (expression_list
+      (int_literal)))
+  (short_var_declaration
+    left: (expression_list
+      (identifier))
+    right: (expression_list
+      (int_literal)))
+  (ERROR)
+  (expression_statement
+    (identifier))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameters)
+    body: (block)))

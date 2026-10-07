@@ -1,0 +1,189 @@
+================================================================================
+A fragment of statements
+================================================================================
+
+x := 1
+if x > 0 {
+	fmt.Println(x)
+}
+return x
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (short_var_declaration
+    left: (expression_list
+      (identifier))
+    right: (expression_list
+      (int_literal)))
+  (if_statement
+    condition: (binary_expression
+      left: (identifier)
+      right: (int_literal))
+    body: (block
+      (expression_statement
+        (call_expression
+          function: (selector_expression
+            operand: (identifier)
+            field: (field_identifier))
+          arguments: (arguments
+            (identifier))))))
+  (return_statement
+    result: (expression_list
+      (identifier))))
+
+================================================================================
+A fragment of declarations
+================================================================================
+
+import "fmt"
+
+type T struct{ a int }
+
+func (t T) A() int { return t.a }
+
+func main() {}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (import_declaration
+    (import_spec
+      path: (interpreted_string_literal
+        (string_content))))
+  (type_declaration
+    (type_definition
+      name: (type_identifier)
+      type: (struct_type
+        (field_declaration
+          name: (field_identifier)
+          type: (type_identifier)))))
+  (method_declaration
+    receiver: (parameters
+      (parameter_declaration
+        name: (identifier)
+        type: (type_identifier)))
+    name: (field_identifier)
+    parameters: (parameters)
+    result: (type_identifier)
+    body: (block
+      (return_statement
+        result: (expression_list
+          (selector_expression
+            operand: (identifier)
+            field: (field_identifier))))))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameters)
+    body: (block)))
+
+================================================================================
+A fragment with declarations and statements
+================================================================================
+
+func add(a, b int) int { return a + b }
+
+sum := add(1, 2)
+fmt.Println(sum)
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_declaration
+    name: (identifier)
+    parameters: (parameters
+      (parameter_declaration
+        name: (identifier)
+        name: (identifier)
+        type: (type_identifier)))
+    result: (type_identifier)
+    body: (block
+      (return_statement
+        result: (expression_list
+          (binary_expression
+            left: (identifier)
+            right: (identifier))))))
+  (short_var_declaration
+    left: (expression_list
+      (identifier))
+    right: (expression_list
+      (call_expression
+        function: (identifier)
+        arguments: (arguments
+          (int_literal)
+          (int_literal)))))
+  (expression_statement
+    (call_expression
+      function: (selector_expression
+        operand: (identifier)
+        field: (field_identifier))
+      arguments: (arguments
+        (identifier)))))
+
+================================================================================
+A function literal and a function type at the start of a statement are no method declaration
+================================================================================
+
+func(x int) int { return x }(1)
+func (a int) T
+go func() {}()
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (call_expression
+      function: (function_literal
+        parameters: (parameters
+          (parameter_declaration
+            name: (identifier)
+            type: (type_identifier)))
+        result: (type_identifier)
+        body: (block
+          (return_statement
+            result: (expression_list
+              (identifier)))))
+      arguments: (arguments
+        (int_literal))))
+  (expression_statement
+    (function_type
+      parameters: (parameters
+        (parameter_declaration
+          name: (identifier)
+          type: (type_identifier)))
+      result: (type_identifier)))
+  (go_statement
+    call: (call_expression
+      function: (function_literal
+        parameters: (parameters)
+        body: (block))
+      arguments: (arguments))))
+
+================================================================================
+A text that starts with a word other than `package` is a fragment
+================================================================================
+
+packag
+
+import "fmt"
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (identifier))
+  (import_declaration
+    (import_spec
+      path: (interpreted_string_literal
+        (string_content)))))
+
+================================================================================
+A comment alone is a fragment
+================================================================================
+
+// A comment.
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (comment))

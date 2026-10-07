@@ -17,6 +17,7 @@ enum TokenType {
   RAW_STRING_CONTENT,
   REJECTED_TOKEN,
   RECOVERY_LINE_END,
+  FRAGMENT_START,
   ERROR_SENTINEL,
 };
 
@@ -25,7 +26,7 @@ enum {
   DIRECTIVE_PREFIX_LENGTH = 5,
   NOT_A_DIRECTIVE = DIRECTIVE_PREFIX_LENGTH + 1,
   MAX_LINE_OR_COLUMN = 1 << 30,
-  MAX_WORD_LENGTH = 9,
+  MAX_WORD_LENGTH = 11,
 };
 
 static void advance(TSLexer *lexer) { lexer->advance(lexer, false); }
@@ -241,21 +242,44 @@ static bool skip_white_space_and_comments(TSLexer *lexer, bool *passed_division_
   }
 }
 
-enum WordKind { NO_WORD, NAME_WORD, NUMBER_WORD, CHAN_WORD, FUNC_WORD, INTERFACE_WORD, MAP_WORD, STRUCT_WORD };
+enum WordKind {
+  NO_WORD,
+  NAME_WORD,
+  NUMBER_WORD,
+  KEYWORD_WORD,
+  CHAN_WORD,
+  FUNC_WORD,
+  INTERFACE_WORD,
+  MAP_WORD,
+  STRUCT_WORD,
+};
 
 static bool starts_type_literal(enum WordKind word) { return word >= CHAN_WORD; }
 
-static enum WordKind type_literal_keyword(const char *word) {
-  static const char *const keywords[] = {"chan", "func", "interface", "map", "struct"};
-  static const enum WordKind kinds[] = {CHAN_WORD, FUNC_WORD, INTERFACE_WORD, MAP_WORD, STRUCT_WORD};
-  for (unsigned i = 0; i < sizeof(keywords) / sizeof(keywords[0]); i++) {
-    const char *keyword = keywords[i];
-    unsigned at = 0;
-    while (word[at] != 0 && word[at] == keyword[at]) {
-      at++;
+static bool is_same_word(const char *word, const char *other) {
+  unsigned at = 0;
+  while (word[at] != 0 && word[at] == other[at]) {
+    at++;
+  }
+  return word[at] == other[at];
+}
+
+// constraint: the keywords match `KEYWORDS` of grammar.js
+static enum WordKind kind_of_word(const char *word) {
+  static const char *const type_keywords[] = {"chan", "func", "interface", "map", "struct"};
+  static const enum WordKind type_kinds[] = {CHAN_WORD, FUNC_WORD, INTERFACE_WORD, MAP_WORD, STRUCT_WORD};
+  static const char *const other_keywords[] = {
+    "break", "case",   "const", "continue", "default", "defer",  "else",   "fallthrough", "for",  "go",
+    "goto",  "if",     "import", "package", "range",   "return", "select", "switch",      "type", "var",
+  };
+  for (unsigned i = 0; i < sizeof(type_keywords) / sizeof(type_keywords[0]); i++) {
+    if (is_same_word(word, type_keywords[i])) {
+      return type_kinds[i];
     }
-    if (word[at] == keyword[at]) {
-      return kinds[i];
+  }
+  for (unsigned i = 0; i < sizeof(other_keywords) / sizeof(other_keywords[0]); i++) {
+    if (is_same_word(word, other_keywords[i])) {
+      return KEYWORD_WORD;
     }
   }
   return NAME_WORD;
@@ -293,7 +317,7 @@ static enum WordKind read_word(TSLexer *lexer) {
     return NAME_WORD;
   }
   word[length] = 0;
-  return type_literal_keyword(word);
+  return kind_of_word(word);
 }
 
 // constraint: the lexer shows one character, so the scan knows that a `/` or a `<` starts a binary operator only
@@ -734,6 +758,36 @@ static bool colon_is_a_token(TSLexer *lexer) {
   return lexer->lookahead != '=';
 }
 
+// constraint: a text is a Go file when its first token is `package`, also when a token that is no name follows it:
+// the file form drops that token and finds the name. Any other text is a fragment, and so is a text in which a
+// keyword or the end of the text follows `package`: the file form would take the name of the next declaration for
+// the name of the package
+// The lexer stands on the first character of the first token of the text.
+static bool starts_package_clause(TSLexer *lexer) {
+  static const char keyword[] = "package";
+  for (unsigned at = 0; keyword[at] != 0; at++) {
+    if (lexer->lookahead != keyword[at]) {
+      return false;
+    }
+    advance(lexer);
+  }
+  if (is_word_character(lexer->lookahead)) {
+    return false;
+  }
+  bool passed_division_operator;
+  if (!skip_white_space_and_comments(lexer, &passed_division_operator) || passed_division_operator) {
+    return true;
+  }
+  if (lexer->eof(lexer)) {
+    return false;
+  }
+  if (!is_word_character(lexer->lookahead)) {
+    return true;
+  }
+  enum WordKind word = read_word(lexer);
+  return word != KEYWORD_WORD && !starts_type_literal(word);
+}
+
 static bool rune_starts_with_invalid_bytes(TSLexer *lexer) {
   advance(lexer);
   return !lexer->eof(lexer) && lexer->lookahead < 0;
@@ -812,7 +866,7 @@ bool tree_sitter_golang_external_scanner_scan(void *payload, TSLexer *lexer, con
     skip(lexer);
   }
   if (lexer->eof(lexer)) {
-    return take_line_end(lexer, valid_symbols);
+    return valid_symbols[FRAGMENT_START] ? give(lexer, FRAGMENT_START) : take_line_end(lexer, valid_symbols);
   }
   int32_t next = lexer->lookahead;
   if (next == '/') {
@@ -836,6 +890,13 @@ bool tree_sitter_golang_external_scanner_scan(void *payload, TSLexer *lexer, con
         return give(lexer, REJECTED_TOKEN);
       }
     }
+  }
+  // constraint: the lexer hides a byte order mark at the start of the text and shows one that an edit has moved from
+  // there, and the parser can reuse a token before text that no edit has changed; so the scan gives no token before
+  // a byte order mark, which Go rejects in that place
+  bool stands_on_token = next != 0 && next != BYTE_ORDER_MARK;
+  if (valid_symbols[FRAGMENT_START] && stands_on_token && !starts_package_clause(lexer)) {
+    return give(lexer, FRAGMENT_START);
   }
   if (valid_symbols[STATEMENT_START] && next == '~') {
     return give(lexer, REJECTED_TOKEN);
