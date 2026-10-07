@@ -150,6 +150,12 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
   the parser has read. So the scanner returns `_automatic_semicolon` at a line end also where no rule takes it, in
   place of a token that no state takes; `listEnd` makes `_element_end` optional before a closing bracket; and the last
   declaration of a file needs no terminator. A text without an error takes none of these forms.
+- The parser does not go back to a state at the position where it stands, and a token without text leaves that
+  position where it is. So the semicolon of a line end after a list element takes the line break as its padding when
+  the next line starts with a closing bracket: the bracket then closes the list, and a last element without its
+  comma does not take the code after the list. A semicolon before a line comment cannot take the line break after
+  the comment, so the scanner leaves a comment before such a line to the lexer and gives the semicolon after it. The
+  lexer does no check of a comment: the scanner leaves it only a comment that needs none.
 - Measure a change of the error recovery on texts with one typing error each (a deleted bracket, a cut line, an
   added `{` or `(` at a line end) made from files of the Go distribution: the mean share of a text inside ERROR nodes
   and the count of texts that lose half or more, against `main` and against tree-sitter-go. Measure the fragment form

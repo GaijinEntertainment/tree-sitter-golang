@@ -269,6 +269,114 @@ func e() {}
     body: (block)))
 
 ================================================================================
+A last element without its comma does not take the declaration after the list
+================================================================================
+
+package p
+
+var x = T{
+	a: 1,
+	b: 2
+}
+
+func f() {}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (composite_literal
+          type: (type_identifier)
+          value: (literal_value
+            (keyed_element
+              key: (identifier)
+              element: (int_literal))
+            (keyed_element
+              key: (identifier)
+              element: (int_literal))
+            (ERROR))))))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameters)
+    body: (block)))
+
+================================================================================
+A last argument without its comma before a line comment does not take the next statement
+================================================================================
+
+package p
+
+func f() {
+	g(
+		a,
+		b // the last
+	)
+	h()
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameters)
+    body: (block
+      (expression_statement
+        (call_expression
+          function: (identifier)
+          arguments: (arguments
+            (identifier)
+            (identifier)
+            (comment)
+            (ERROR))))
+      (expression_statement
+        (call_expression
+          function: (identifier)
+          arguments: (arguments))))))
+
+================================================================================
+A last parameter without its comma does not take the next function
+================================================================================
+
+package p
+
+func f(
+	a int,
+	b int
+) {
+}
+
+func g() {}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameters
+      (parameter_declaration
+        name: (identifier)
+        type: (type_identifier))
+      (parameter_declaration
+        name: (identifier)
+        type: (type_identifier))
+      (ERROR))
+    body: (block))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameters)
+    body: (block)))
+
+================================================================================
 A package clause without a name does not take the declarations after it
 ================================================================================
 
