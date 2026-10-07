@@ -142,7 +142,10 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
   closing bracket, `,` or `.`. The parser goes back to the nearest state that takes the token: the grammar takes it
   as a terminator, and as an empty item of each list of statements, declarations or specs. No rule shifts it there:
   the parser reads the line end again in that state. A list without that item sends the parser to a state far
-  before the error, and the declarations between them go into ERROR.
+  before the error, and the declarations between them go into ERROR. The first state takes the token through a form
+  of `source_file` that never completes: a token that the scanner rejects before the first token of the text leaves
+  the parser no other state to go back to. The state after `package` takes it too, or the parser goes back to the
+  first state and loses a package clause whose name stands after a damaged line.
 - The parser closes an open bracket with one MISSING token only when the state after that token takes the token that
   the parser has read. So the scanner returns `_automatic_semicolon` at a line end also where no rule takes it, in
   place of a token that no state takes; `listEnd` makes `_element_end` optional before a closing bracket; and the last

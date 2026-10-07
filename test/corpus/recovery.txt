@@ -326,6 +326,74 @@ func f() {}
     body: (block)))
 
 ================================================================================
+A rejected comment before the first token does not take a fragment
+================================================================================
+
+//line x.go:0
+x := 1
+
+func f() {}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (ERROR)
+  (short_var_declaration
+    left: (expression_list
+      (identifier))
+    right: (expression_list
+      (int_literal)))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameters)
+    body: (block)))
+
+================================================================================
+A rejected comment before a package clause without a name does not take the declarations
+================================================================================
+
+//line x.go:0
+package
+
+import "fmt"
+
+func f() {}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (ERROR)
+  (import_declaration
+    (import_spec
+      path: (interpreted_string_literal
+        (string_content))))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameters)
+    body: (block)))
+
+================================================================================
+A rejected comment in a package clause does not take the name on the next line
+================================================================================
+
+package /*line x.go:0*/
+	p
+
+func f() {}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    (ERROR)
+    (comment)
+    name: (package_identifier))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameters)
+    body: (block)))
+
+================================================================================
 A package clause in a fragment does not take the statements before it
 ================================================================================
 

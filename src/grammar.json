@@ -110,6 +110,19 @@
               ]
             }
           ]
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_recovery_line_end"
+            },
+            {
+              "type": "SYMBOL",
+              "name": "_never_returned"
+            }
+          ]
         }
       ]
     },
@@ -263,6 +276,18 @@
         {
           "type": "STRING",
           "value": "package"
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "_recovery_line_end"
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
         },
         {
           "type": "FIELD",

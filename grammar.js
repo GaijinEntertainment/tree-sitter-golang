@@ -506,10 +506,13 @@ export default grammar({
     // constraint: a text that starts with a package clause is a Go file, and the first form follows the parsers; any
     // other text is a fragment, such as a code block of a document; the scanner gives `_fragment_start` for it, and
     // picks the form for a damaged package clause; so the first state takes only `package` and that token, and the
-    // parser does not go back to it while it recovers in a file
+    // parser does not go back to it while it recovers in a file; the third form never completes: with it the first
+    // state takes `_recovery_line_end`, and the parser comes back to that state after a first line that the scanner
+    // rejects
     source_file: ($) => choice(
       seq($.package_clause, $._terminator, importItems($), declarationItems($)),
       seq($._fragment_start, optional($._fragment)),
+      seq($._recovery_line_end, $._never_returned),
     ),
 
     // constraint: a fragment holds what a function body holds and what the top level of a file holds, in any order;
@@ -524,7 +527,9 @@ export default grammar({
       );
     },
 
-    package_clause: ($) => seq('package', field('name', packageIdentifier($))),
+    // constraint: the state after `package` takes `_recovery_line_end`, so that the parser comes back to it, and not
+    // to the first state, when a name follows a damaged line
+    package_clause: ($) => seq('package', optional($._recovery_line_end), field('name', packageIdentifier($))),
 
     import_declaration: ($) => seq('import', choice($.import_spec, seq('(', terminated($, $.import_spec), ')'))),
 
