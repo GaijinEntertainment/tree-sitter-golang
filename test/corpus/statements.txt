@@ -188,6 +188,54 @@ func f() {
               (identifier))))))))
 
 ================================================================================
+A type switch with an init statement
+================================================================================
+
+package p
+
+func f() {
+	switch x := g(); v := x.(type) {
+	case int:
+		_ = v
+	}
+	switch g(); x.(type) {
+	}
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameters)
+    body: (block
+      (type_switch_statement
+        init_statement: (short_var_declaration
+          left: (expression_list
+            (identifier))
+          right: (expression_list
+            (call_expression
+              function: (identifier)
+              arguments: (arguments))))
+        name: (identifier)
+        operand: (identifier)
+        (type_case_clause
+          type: (type_identifier)
+          (assignment
+            left: (expression_list
+              (identifier))
+            right: (expression_list
+              (identifier)))))
+      (type_switch_statement
+        init_statement: (expression_statement
+          (call_expression
+            function: (identifier)
+            arguments: (arguments)))
+        operand: (identifier)))))
+
+================================================================================
 Select statements
 ================================================================================
 
