@@ -209,24 +209,14 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
   already has the version is skipped. The Go module needs no publish step: the tag on the public repository is the
   release.
 - A manual run of `publish.yml` rehearses a release: it runs the checks and builds every artifact, and publishes
-  nothing. Run it before the first tag and after a change to the workflow.
+  nothing. Run it after a change to the workflow.
 - The `protect-release-tags` ruleset forbids moving or deleting a `v*` tag. When a publish job fails for a reason
   outside the repository, run the failed jobs again; when the fix is a commit, release the next version.
-- The environments `crates`, `pypi`, and `npm` of the repository accept deployments only from `v*` tags.
-- Before the first tag, set up the registries once. Each trusted publisher names the repository
-  `GaijinEntertainment/tree-sitter-golang`, the workflow `publish.yml`, and the environment of its registry:
-  - On PyPI, add a pending trusted publisher for the project `tree-sitter-golang`, with the environment `pypi`.
-  - crates.io accepts a trusted publisher only for a crate that exists. Publish the first version from the release
-    commit with `cargo publish` and the API token of a crate owner before you push the tag. Then add the trusted
-    publisher with the environment `crates`.
-  - npm accepts a trusted publisher only for a package that exists. Publish the placeholder version `0.0.0` of
-    `@gaijin/tree-sitter-golang` from a directory that holds only a `package.json`. Then add the trusted publisher
-    with the environment `npm`, and allow `npm publish` for it:
-
-    ```sh
-    npm trust github @gaijin/tree-sitter-golang --file publish.yml \
-      --repo GaijinEntertainment/tree-sitter-golang --env npm --allow-publish
-    ```
+- crates.io, PyPI, and npm each hold a trusted publisher for the repository `GaijinEntertainment/tree-sitter-golang`,
+  the workflow `publish.yml`, and the environment `crates`, `pypi`, or `npm`. The npm publisher allows `npm publish`.
+  The three environments accept deployments only from `v*` tags. A new name for the repository, the workflow file, or
+  an environment needs a new trusted publisher on each registry.
+- The npm versions `0.0.0` and `0.0.0-stage` are placeholders that held the package name before the first release.
 - The GitHub release attests its artifacts, and npm records provenance; both need a public repository.
 - A job that can mint an OIDC token (`id-token: write`) runs only GitHub's own actions and the registry's own publishing
   action. The publish workflow downloads the tree-sitter CLI and checks its SHA-256 for that reason.
