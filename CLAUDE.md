@@ -161,7 +161,9 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
   `_element_separator` is that rule for a `,`, and it reduces only before `_line_end_before_element`. The scanner
   gives that token at a line end after a list element when the next line starts an element and no common statement
   (a brace, a string, a rune or a number literal, `&`, `[`, or a name before `:`): the parser adds a MISSING `,` and
-  continues the list. Any other line gets the semicolon, and the parser closes the list with a MISSING bracket.
+  continues the list. Any other line gets the semicolon, and the parser closes the list with a MISSING bracket. A
+  brace after an element that can be the type of a composite literal, where `_brace_on_same_line` is valid, is the
+  brace of that literal on a wrong line and starts no element.
   - The first MISSING token that fits wins, in the order of the symbols. A separator rule that reduces before every
     token that starts an element makes a MISSING `,` win over a MISSING bracket on one line.
   - After a MISSING token the parser reads the next token again, in the new state, and drops a token without text
