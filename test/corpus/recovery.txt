@@ -390,6 +390,48 @@ func f() {}
     body: (block)))
 
 ================================================================================
+A brace on the line after a type name is no new element of the list
+================================================================================
+
+package p
+
+var x = []T{
+	T
+	{1, 2},
+	T{3, 4},
+}
+
+func f() {}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (package_clause
+    name: (package_identifier))
+  (var_declaration
+    (var_spec
+      name: (identifier)
+      value: (expression_list
+        (composite_literal
+          type: (slice_type
+            element: (type_identifier))
+          value: (literal_value
+            (ERROR
+              (identifier))
+            (literal_value
+              (int_literal)
+              (int_literal))
+            (composite_literal
+              type: (type_identifier)
+              value: (literal_value
+                (int_literal)
+                (int_literal))))))))
+  (function_declaration
+    name: (identifier)
+    parameters: (parameters)
+    body: (block)))
+
+================================================================================
 A last argument without its comma before a line comment does not take the next statement
 ================================================================================
 
