@@ -156,7 +156,10 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
   the next line starts with a closing bracket: the bracket then closes the list, and a last element without its
   comma does not take the code after the list. A semicolon before a line comment cannot take the line break after
   the comment, so the scanner leaves a comment before such a line to the lexer and gives the semicolon after it. The
-  lexer does no check of a comment: the scanner leaves it only a comment that needs none.
+  lexer does no check of a comment: the scanner leaves it only a comment that needs none. The scanner does not know
+  which bracket closes the list of a state, so the padding also applies before a bracket of another construct. A
+  marker per bracket kind at the end of each list tells it, and splits the states of the element rules: 5,559 states
+  become 8,730.
 - The parser adds a MISSING token only when the state after it reduces a rule on the token that the parser has read.
   `_element_separator` is that rule for a `,`, and it reduces only before `_line_end_before_element`. The scanner
   gives that token at a line end after a list element when the next line starts an element and no common statement
