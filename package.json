@@ -1,5 +1,5 @@
 {
-  "name": "tree-sitter-golang",
+  "name": "@gaijin/tree-sitter-golang",
   "version": "1.27.0",
   "description": "Go grammar for tree-sitter",
   "type": "module",
