@@ -25,7 +25,7 @@ type NodeInfo =
  *
  * @example
  * import Parser from "tree-sitter";
- * import Golang from "tree-sitter-golang";
+ * import Golang from "@gaijin/tree-sitter-golang";
  *
  * const parser = new Parser();
  * parser.setLanguage(Golang);

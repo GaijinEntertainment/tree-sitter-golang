@@ -2,6 +2,7 @@
 
 [![CI][ci]](https://github.com/GaijinEntertainment/tree-sitter-golang/actions/workflows/ci.yml)
 [![crates][crates]](https://crates.io/crates/tree-sitter-golang)
+[![npm][npm]](https://www.npmjs.com/package/@gaijin/tree-sitter-golang)
 [![pypi][pypi]](https://pypi.org/project/tree-sitter-golang)
 
 Go grammar for [tree-sitter](https://github.com/tree-sitter/tree-sitter), at the language version of Go 1.27.
@@ -41,4 +42,5 @@ a release adds node kinds and fields, and does not rename or remove one.
 
 [ci]: https://img.shields.io/github/actions/workflow/status/GaijinEntertainment/tree-sitter-golang/ci.yml?logo=github&label=CI
 [crates]: https://img.shields.io/crates/v/tree-sitter-golang?logo=rust
+[npm]: https://img.shields.io/npm/v/@gaijin/tree-sitter-golang?logo=npm
 [pypi]: https://img.shields.io/pypi/v/tree-sitter-golang?logo=pypi&logoColor=ffd242

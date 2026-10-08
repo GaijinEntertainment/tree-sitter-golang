@@ -200,23 +200,34 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
 - To release, set the version with `tree-sitter version X.Y.P`, then run `tree-sitter generate`, because
   `src/parser.c` holds the version too, and update the lockfiles with `cargo update --workspace --offline` and
   `npm install --package-lock-only --ignore-scripts`. Commit, and push the tag `vX.Y.P`.
+- The npm package is `@gaijin/tree-sitter-golang`, because the npm name `tree-sitter-golang` belongs to another
+  account. The crate, the PyPI project, the Go module, and the prebuilt Node.js binary keep the name
+  `tree-sitter-golang`: the publish workflow passes that name to `prebuildify`, and `bindings/node/index.js` names the
+  binary for Bun.
 - The tag starts `.github/workflows/publish.yml`. It checks that the tag matches `tree-sitter.json` and the Go module
-  path, creates the GitHub release with attested artifacts, and publishes to crates.io and PyPI. A registry that already
-  has the version is skipped. The Go module needs no publish step: the tag on the public repository is the release.
+  path, creates the GitHub release with attested artifacts, and publishes to crates.io, PyPI, and npm. A registry that
+  already has the version is skipped. The Go module needs no publish step: the tag on the public repository is the
+  release.
 - A manual run of `publish.yml` rehearses a release: it runs the checks and builds every artifact, and publishes
   nothing. Run it before the first tag and after a change to the workflow.
 - The `protect-release-tags` ruleset forbids moving or deleting a `v*` tag. When a publish job fails for a reason
   outside the repository, run the failed jobs again; when the fix is a commit, release the next version.
-- Before the first tag, set up the registries once:
-  - In the repository settings, create the environments `crates` and `pypi`, and limit each to deployments from `v*`
-    tags.
-  - On PyPI, add a pending trusted publisher for the project `tree-sitter-golang`: owner `GaijinEntertainment`,
-    repository `tree-sitter-golang`, workflow `publish.yml`, environment `pypi`.
+- The environments `crates`, `pypi`, and `npm` of the repository accept deployments only from `v*` tags.
+- Before the first tag, set up the registries once. Each trusted publisher names the repository
+  `GaijinEntertainment/tree-sitter-golang`, the workflow `publish.yml`, and the environment of its registry:
+  - On PyPI, add a pending trusted publisher for the project `tree-sitter-golang`, with the environment `pypi`.
   - crates.io accepts a trusted publisher only for a crate that exists. Publish the first version from the release
     commit with `cargo publish` and the API token of a crate owner before you push the tag. Then add the trusted
-    publisher: repository `GaijinEntertainment/tree-sitter-golang`, workflow `publish.yml`, environment `crates`.
-- The publish workflow does not publish to npm: the npm package `tree-sitter-golang` belongs to another account.
-- The GitHub release attests its artifacts, which needs a public repository.
+    publisher with the environment `crates`.
+  - npm accepts a trusted publisher only for a package that exists. Publish the placeholder version `0.0.0` of
+    `@gaijin/tree-sitter-golang` from a directory that holds only a `package.json`. Then add the trusted publisher
+    with the environment `npm`, and allow `npm publish` for it:
+
+    ```sh
+    npm trust github @gaijin/tree-sitter-golang --file publish.yml \
+      --repo GaijinEntertainment/tree-sitter-golang --env npm --allow-publish
+    ```
+- The GitHub release attests its artifacts, and npm records provenance; both need a public repository.
 - A job that can mint an OIDC token (`id-token: write`) runs only GitHub's own actions and the registry's own publishing
   action. The publish workflow downloads the tree-sitter CLI and checks its SHA-256 for that reason.
 
