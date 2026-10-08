@@ -13,6 +13,27 @@ of them rejects the input. It does not do the checks of the type checker.
 A text that does not start with a package clause is a fragment, such as a code block of a document: the grammar parses
 its import declarations, declarations and statements in any order.
 
+## Versioning
+
+The version of the grammar is `X.Y.P`. It is not a semantic version.
+
+```text
+1.27.0
+|    |
+|    +-- P: the number of the grammar release for that Go version; the first release is 0
++------- X.Y: the newest Go version that the grammar covers
+```
+
+- `X.Y` is the newest Go language version that the grammar covers. Each `1.27.P` covers Go 1.27, and the first release
+  for Go 1.28 is `1.28.0`.
+- `P` is the grammar's own number. It counts the releases of the grammar for one Go version, and it does not follow the
+  patch number of a Go release. `1.27.1` is the second release of the grammar for Go 1.27. It is not a grammar for the
+  Go release 1.27.1.
+
+A new `P` is a new release of the grammar for the same Go version: a correction of the trees or of the queries. A new
+`X.Y` adds the syntax of a newer Go version. Go stays at major version 1, so the version cannot mark a breaking change:
+a release adds node kinds and fields, and does not rename or remove one.
+
 ## References
 
 - [The Go Programming Language Specification](https://go.dev/ref/spec)
