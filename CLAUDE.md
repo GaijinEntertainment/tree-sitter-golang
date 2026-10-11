@@ -83,6 +83,7 @@ Tree-sitter grammar for Go, at the language version of Go 1.27.
   list in `package.json`, `Cargo.toml`, and `pyproject.toml` by hand; `tree-sitter init --update` keeps it.
 - CLI 0.27.1 `tree-sitter init --update` writes a second `let dir` line into `Package.swift`, and writes
   `tree-sitter.json` without its final newline. Remove that line, and restore the newline.
+- The MinGW branches of the `install` and `uninstall` rules in `Makefile` differ from the CLI template; keep them.
 - The Go file of every directory except `bindings/go/` carries `//go:build ignore`, because the repository root is the
   Go module of the Go binding and `go test ./...` compiles every package in it.
 - Keep the `externals` array in `grammar.js` and `enum TokenType` in `src/scanner.c` in the same order.
