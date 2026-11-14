@@ -30,7 +30,7 @@ jobs:
         with:
           tree-sitter-ref: v0.27.1
       - name: Run tests
-        uses: tree-sitter/parser-test-action@05f6ce7c7e54603c45cd87ed926725dc870bcc63 # v3
+        uses: tree-sitter/parser-test-action@d5403e07ecfd518d4845f2a366d9d2bd40b9bd0a # v3
         with:
           test-rust: true
           test-node: true
